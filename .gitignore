@@ -19,20 +19,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-parts/
-sdist/
-var/
-wheels/
-.installed.config
-*.egg-info/
-.installed.cfg
 
 # === Editor & OS Settings ===
 .vscode/
