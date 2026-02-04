@@ -1,0 +1,43 @@
+# === Environment & Virtual Envs ===
+.venv/
+venv/
+.env
+*.env
+
+# === Project Specific Outputs ===
+# プロジェクト成果物（再生成可能なもの）
+project/output/
+qwen3-tts/
+*.log
+
+# === Secret Configuration ===
+# 機密情報を含む設定ファイル
+configure/system/*.env
+
+# === Python Cache & Build ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+.installed.config
+*.egg-info/
+.installed.cfg
+
+# === Editor & OS Settings ===
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,12 @@
+{
+  "Project": {
+    "project_name": "観光地音声ドラマプロジェクト",
+    "description": "地域の魅力を伝える音声ドラマを自動生成するプロジェクト",
+    "project_dir": "./project",
+    "gis_data": "./project/gis_data.gpkg",
+    "rubi_map": "./project/rubi_map.json",
+    "llm_client": "LlamaCpp",
+    "llm_model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+    "llm_api": "http://localhost:8080/chat/completions"
+  }
+}
