@@ -30,10 +30,10 @@ class Project:
                 self.project_dir = root.resolve()
             else:
                 self.project_dir = (root / project_root).resolve()
-        
-        self.gis_data = (root / gis_data).resolve()
-        self.rubi_map = (root / rubi_map).resolve()
+
         self.prompt_dir = (root.parent / "configure" / "prompts").resolve()
+        self.gis_data = (root.parent / gis_data).resolve()
+        self.rubi_map = (root.parent / rubi_map).resolve()
 
         # 関連ディレクトリの設定
         self.output_dir = self.project_dir / "output"
@@ -49,6 +49,7 @@ class Project:
         # 中間生成ファイルのパスも定義しておくと便利
         self.results = {
             "analysis": self.output_dir / "analysis_result.json",
+            "geography": self.output_dir / "geography_result.json",
             "agenda": self.output_dir / "agenda_result.json",
             "protagonist": self.output_dir / "protagonist_result.json",
             "duotagonist": self.output_dir / "duotagonist_result.json",

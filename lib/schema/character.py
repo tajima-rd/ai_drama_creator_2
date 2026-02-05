@@ -79,8 +79,11 @@ class Profile(SaveableModel):
     background: Optional[str] = Field(None, description="経歴")
     knowledge: Optional[str] = Field(None, description="知識")
     experience: Optional[str] = Field(None, description="経験：誕生から現在までを詳細に作成")
+    cognitive_bias: Optional[str] = Field(None, description="事実を独自の知識体系でどう誤解・変換するか")
+    value_system: Optional[str] = Field(None, description="何を良しとし、何を嫌うか。")
+    dialogue_example: Optional[str] = Field(None, description="実際のセリフの数行の例。")
     relationships: Optional[str] = Field(None, description="人間関係")
-    voice: Optional[VoiceBase] = Field(None, description="アサインされた話者。自動選定ロジックで使用")
+    voice: Optional[str] = Field(None, description="アサインされた話者。自動選定ロジックで使用")
 
 class Character(SaveableModel):
     role_type: Literal["protagonist", "duotagonist"]

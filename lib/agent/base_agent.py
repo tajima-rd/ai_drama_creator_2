@@ -54,6 +54,7 @@ class BaseAgent:
                 messages = [{"role": "user", "content": final_prompt}]
                 raw_json = self.generator.generate(messages)
                 sanitized_json = sanitize_json_string(raw_json)
+
                 return response_schema.model_validate_json(sanitized_json)
             except ValidationError as e:
                 print(f"[Attempt {attempt + 1}/{max_retries}] Validation Error: {e}")

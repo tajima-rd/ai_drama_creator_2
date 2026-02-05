@@ -16,6 +16,7 @@ from lib.genai.generators import WriteConfig, GeminiTextGenerator, LlamaCppTextG
 from lib.genai.tts import Qwen3TTS, ATTENTION_TYPE
 
 from lib.schema.report import Report
+from lib.schema.geography import RegionSummary
 from lib.schema.agenda import Agenda
 from lib.schema.character import Character, VoiceBase
 from lib.schema.plot import PlotDesign
@@ -101,53 +102,6 @@ def load_client(project: Project):
     
     return generator
 
-def AnalyzeCurrentIssue(analyst:AnalysisAgent, project:Project, current_issues:str):
-    analysis_path = project.results["analysis"]
-
-    if not analysis_path.exists():
-        # --- 生成モード ---
-        report = analyst.create_report(project, current_issues)
-        print(f"Analysis result generated and saved to: {analysis_path}")
-    else:
-        # --- ロードモード ---
-        # BaseAgentの静的メソッド（または単なるjson.load）を使って復元
-        analysis_data = analyst.load_json(analysis_path)
-        report = Report(**analysis_data)
-        print(f"Analysis result loaded from: {analysis_path}")
-    return report
-
-def ComposeAgenda(designer: DesignerAgent, project: Project, report: Report):
-    agenda_path = project.results["agenda"]
-
-    if not agenda_path.exists():
-        # --- 生成モード ---
-        agenda = designer.create_agenda(project, report)
-        print(f"Agenda generated and saved to: {agenda_path}")
-    else:
-        # --- ロードモード ---
-        agenda_data = designer.load_json(agenda_path)
-        agenda = Agenda(**agenda_data)
-        print(f"Agenda loaded from: {agenda_path}")
-        
-    return agenda
-
-def DefineCharacters(architect: ArchitectAgent, project: Project, agenda: Agenda, role_type: str, data_dict: dict):
-    # project.results から該当するパスを取得 ("protagonist" または "duotagonist")
-    char_path = project.results[role_type]
-
-    if not char_path.exists():
-        print(f"------ {role_type.capitalize()} の作成 ------")
-        # 生成モード
-        character = architect.create_profile(project, agenda, data_dict)
-        print(f"{role_type.capitalize()} result generated and saved.")
-    else:
-        # ロードモード
-        char_data = architect.load_json(char_path)
-        character = Character(**char_data)
-        print(f"{role_type.capitalize()} loaded from file.")
-    
-    return character
-
 def main():
     start_time = datetime.now()
     print(f"[{start_time.strftime('%H:%M:%S')}] --- 処理を開始します ---")
@@ -159,33 +113,48 @@ def main():
     generator = load_client(project)
 
     # Load agents
-    analyst = AnalysisAgent(generator)
-    designer = DesignerAgent(generator)
-    architect = ArchitectAgent(generator)
-    director = DirectorAgent(generator)
-    writer = WriterAgent(generator)
+    analyst = AnalysisAgent(generator, project)
+    designer = DesignerAgent(generator, project)
+    architect = ArchitectAgent(generator, project)
+    director = DirectorAgent(generator, project)
+    writer = WriterAgent(generator, project)
 
     # Show the time for initializing
     previous_time = watcher(start_time, start_time)
 
     # --- Run Pipeline ---
-    print(f"--- [01] Analyze the current issue: {project.project_name} ---")
     # Run the analysis agent
-    current_issues = "出石（いずし）は、出石そばが名物で、辰鼓楼（しんころう）という古い時計台がアイコンとなっている。多くの観光客が訪れるが、実際には昼食のみが目的化している。滞在時間は短く、経済効果が限定的であるため、出石そば以外の魅力を発信することが必要となっている。特に、伝統的な町並み、永楽館、福富家住宅、明治館、家老屋敷などの魅力を十分に活かしきれていないのが課題である。観光客の年齢層も高い傾向がある。少子高齢化社会の現状を考えると、今後はもっと若い世代に訴求力を持ったコンテンツを構築することが必要となる。"
-    report = AnalyzeCurrentIssue(analyst, project, current_issues)
+    print(f"--- [01] Analyze the region ---")
+    spot_data = gpd.read_file(project.gis_data)
+    region_summary = analyst.analyze_region(spot_data)
+
+    # Show the time for analyzing
+    previous_time = watcher(start_time, previous_time)
+
+    print(f"--- [02] Analyze the current issue: {project.project_name} ---")
+    # Run the analysis agent
+    current_situation = {
+        "known_issues": "多くの観光客が訪れるが、実際には昼食のみが目的化している。滞在時間は短く、経済効果が限定的であるため、出石そば以外の魅力を発信することが必要となっている。観光客の年齢層も高い傾向がある。",
+        "problmes":"特に、伝統的な町並み、永楽館、福富家住宅、明治館、家老屋敷などの魅力を十分に活かしきれていないのが課題である。",
+        "future_plan":"少子高齢化社会の現状を考えると、今後は若い世代を中心により広い層に向けて情報を発信する必要がある。"
+    }
+    report = analyst.analyze_current_issues(current_situation)
     
     # Show the time for analyzing
     previous_time = watcher(start_time, previous_time)  # 参考時間：[21:30:11] 経過時間: 3.67秒
     
-    print("--- [02] Compose the agenda ---")
+    print("--- [03] Compose the agenda ---")
     # Run the designer agent
-    agenda = ComposeAgenda(designer, project, report)
+    designer.report = report
+    agenda = designer.compose_agenda()
 
     # Show the time for composing the agenda
     previous_time = watcher(start_time, previous_time)  
 
-    # print("--- [03] キャラクター設計 ---")
-    # Run the designer agent
+    print("--- [04] Define the characters---")
+    architect.agenda = agenda
+
+    print("-- Protagonist --")
     role_type_protagonist = "protagonist"
     protagonist_setting = {
         "role_type": role_type_protagonist,
@@ -193,6 +162,9 @@ def main():
         "action": "勝手な想像で的外れなことしか言わず、周りを惑わしたり、劇中では笑いを誘う役割を持つ",
         "voice": "Aiden",
         "personality": "真面目だけれど、アホで自尊心が高い。好奇心が非常に高い。思い込みが激しい。勝手な想像で的外れなことしか言わない。", 
+        "cognitive_bias": "地球上で見かけるあらゆるものを、地球人による宇宙侵略の企てだと勘ぐってしまう。地球のことを全く知らないので、「城跡」を「地球人の宇宙侵略基地」と言ったり、食べ物を食べ物以外のなにかと勘違いする。", 
+        "value_system": "とにかく、好奇心旺盛で新しいものや、物珍しいものに夢中になる。偉そうではあるが、比較的簡単に納得する。", 
+        "dialogue_example": "われは、宇宙で一番高貴な天才である！！わはははは！", 
         "background": "銀河の彼方から飛来した宇宙人。乗っていた宇宙船が有子山に墜落し、調査のために出石の市街に降りてきた。賢いようには見えない。", 
         "bond": "ふがふが",
         "gender": "男",
@@ -204,9 +176,9 @@ def main():
         "extra_settings": "なし",
         "relationships": "「ふがふが」を無自覚に困らせることが多い。"
     }
-    protagonist = DefineCharacters(architect, project, agenda, role_type_protagonist, protagonist_setting)
+    protagonist = architect.define_characters(role_type_protagonist, protagonist_setting)
 
-    # デュオタゴニスト（ふがふが）の設定
+    print("-- Duotagonist --")
     role_type_duotagonist = "duotagonist"
     duotagonist_settings = {
         "role_type": role_type_duotagonist,
@@ -214,148 +186,52 @@ def main():
         "action": "手持ちの端末で正しい情報を検索し説明し、相方が憶測で喋っている内容を訂正し、正しく伝えるという役割を持つ。",
         "voice": "Ono_Anna",
         "personality": "知的で客観的な常識人。いつも冷静に判断することを心がけており、憶測で行動することを避ける。", 
+        "cognitive_bias": "地球のことを全く知らないので、あらゆるものを手元のAI端末で検索あるいは分析し、正しい知識を得る。", 
+        "value_system": "保守的で得体の知れないものには近づかない。自分の故郷の星が宇宙で一番だと考えている。", 
+        "dialogue_example": "「また勝手なことを言って！」, 「ちょっと、待って！ちゃんと調べるから！」", 
         "background": "銀河の彼方から飛来したもう一人の宇宙人。相方と一緒に出石の市街に降りてきた。あまり、地球に興味は無いが、相方の行動や発言に不安を感じてついてきた。", 
         "bond": "ほげほげ",
         "gender": "女",
         "age": "不明",
         "speaking_style": "やや冷淡で機械的な口調",
-        "catchphrase": "「また勝手なことを言って！」, 「ちょっと、待って！ちゃんと調べるから！」",
+        "catchphrase": "「本当にそうかしら？」",
         "knowledge": "地球に関する知識ないが、機械の扱いに長けており、地球の常識についても迅速に調べて整理することができる。",
         "experience": "銀河の彼方の星の一般家庭の長女。非常に優秀であるが、何故かトラブルにまきこまれたり、周囲の人間の世話を焼くことが多い。学生時代は常に最優秀学生をキープしていた。",
         "extra_settings": "なし",
         "relationships": "いつも「ほげほげ」の言動に振り回される。"
     }
-    duotagonist = DefineCharacters(architect, project, agenda, role_type_duotagonist, duotagonist_settings)
+    duotagonist = architect.define_characters(role_type_duotagonist, duotagonist_settings)
 
     # Show the time for composing the agenda
     previous_time = watcher(start_time, previous_time)  
 
-    # print("--- [04] プロット作成 ---")
-    # spot_data = gpd.read_file(project.gis_data)
+    print("--- [05] Design the story plot ---")
+    # Run the designer agent
+    designer.protagonist = protagonist
+    designer.duotagonist = duotagonist
+    designer.region_summary = region_summary
+    plot_design = designer.design_plot()
 
-    # spots_info = []
-    # for _, row in spot_data.iterrows():
-    #     spots_info.append({
-    #         "order": row["order"],  # 順番
-    #         "name": row["name"],  # 名
-    #         "explanation": row["explanation"],  # 説明
-    #         "scene": row["scene"],  # シーン
-    #         "visit_time": row["visit_time"],  # シーン
-    #         "geometry": row.geometry.__geo_interface__  # GeoJSON形式の座標
-    #     })
-    
-    # if not os.path.exists(plot_file):
-    #     # スポット情報をもとに地域概要文章を生成
-    #     area_summary = ""
-    #     for spot in spots_info:
-    #         area_summary += f"{spot['name']}: {spot['explanation']}\n\n"
+    # Show the time for designing the plot
+    previous_time = watcher(start_time, previous_time)  
 
-    #     # 生成した地域概要をJSON形式に変換
-    #     spot_data_dict = {
-    #         "agenda_json": agenda_res.agenda.model_dump_json(),
-    #         "characters_json": json.loads(char_data),  # 文字列をdictに変換
-    #         "spots_info_json": area_summary
-    #     }
+    print("--- [06] Define the scene settings ---")
+    director.plotDesign = plot_design
+    director.protagonist = protagonist
+    director.duotagonist = duotagonist
 
-    #     # プロット作成（地域概要文章を含む）
-    #     plot_res = designer.create_plot(
-    #         project,
-    #         spot_data_dict
-    #     )
+    scenes = director.setup_scenes(spot_data)
 
-    #     if plot_res.status == "error":
-    #         print(f"Error at create an angeda.: {plot_res.message}")
-    #         return
-        
-    #     # 結果を保存
-    #     save_json(plot_res.model_dump(), project.output_dir, plot_file)
-    #     print("Plot saved to file.")
-    # else:
-    #     # ロードモード
-    #     plot_data = load_json(project.output_dir, plot_file)
-    #     plot_res = PlotResponse(**plot_data)  # または AnalysisReport に合わせる
-    #     print("Plot loaded from file.") 
+    # 進行状況の表示
+    previous_time = watcher(start_time, previous_time)
 
-    # print("--- [05] シーン設計 ---")
-    # if os.path.exists(project.scene_dir):
-    #     # スポット情報をもとに地域概要文章を生成
-    #     scene_summary = ""
-    #     for spot in spots_info:
-    #         order = spot["order"]
-    #         visit_time = spot["visit_time"]
-    #         scene_summary = f"{spot['scene']}"
+    print("--- [07] Write the scripts ---")
+    writer.protagonist = protagonist
+    writer.duotagonist = duotagonist
+    writer.scenes = scenes
 
-    #         scene_file = project.scene_dir / f"{order}_scene.json"
-            
-    #         if not os.path.exists(scene_file):
-    #             spot_data_dict = {
-    #                 "plot_json": plot_res.model_dump_json(),
-    #                 "characters_json": json.loads(char_data),  # 文字列をdictに変換
-    #                 "scene_summary": f"{spot['name']}: {scene_summary}",
-    #                 "visit_time": visit_time
-    #             }
-
-    #             # プロット作成（地域概要文章を含む）
-    #             scene_res = director.create_scene(
-    #                 project,
-    #                 spot_data_dict
-    #             )
-
-    #             if scene_res.status == "error":
-    #                 print(f"Error at create an scene {order}.: {scene_res.message}")
-    #                 return
-                
-    #             # 結果を保存
-    #             save_json(scene_res.model_dump(), project.scene_dir, scene_file)
-    #             print(f"Scene {order} saved to file.")
-
-    # current_time = datetime.now()
-    # elapsed = current_time - start_time
-    # print(f"[{current_time.strftime('%H:%M:%S')}] 経過時間: {elapsed.total_seconds():.2f}秒")
-
-    # print("--- [06] 台本執筆 ---")
-    # if os.path.exists(project.script_dir):
-    #     # スポット情報をもとに地域概要文章を生成
-    #     scene_summary = ""
-    #     for spot in spots_info:
-    #         order = spot["order"]
-    #         visit_time = spot["visit_time"]
-    #         spot_summary = f"{spot['name']}: {spot['explanation']}"
-
-    #         script_file = project.script_dir / f"{order}_script.json"
-
-    #         scene_file = project.scene_dir / f"{order}_scene.json"
-    #         scene_data = load_json(project.scene_dir, scene_file)
-    #         scene_res = SceneResponse(**scene_data)
-            
-    #         if not os.path.exists(script_file):
-    #             scene_data_dict = {
-    #                 "scene_json": scene_res.model_dump_json(),
-    #                 "spot_data": spot_summary,
-    #                 "characters_json": json.loads(char_data),
-    #                 "rubi_map": f"{spot['name']}: {scene_summary}"
-    #             }
-
-    #             # プロット作成（地域概要文章を含む）
-    #             script_res = writer.create_script(
-    #                 project,
-    #                 scene_data_dict
-    #             )
-
-    #             if script_res.status == "error":
-    #                 print(f"Error at create an script {order}.: {script_res.message}")
-    #                 return
-                
-    #             # 結果を保存
-    #             save_json(script_res.model_dump(), project.script_dir, script_file)
-    #             print(f"Script {order} saved to file.")
-                
-    #         else:
-    #             script_data = load_json(project.script_dir, script_file)
-
-    # current_time = datetime.now()
-    # elapsed = current_time - start_time
-    # print(f"[{current_time.strftime('%H:%M:%S')}] 経過時間: {elapsed.total_seconds():.2f}秒")
+    scripts = writer.write_scripts(spot_data)
+    previous_time = watcher(start_time, previous_time)
 
     # print("--- [07] 音声生成 ---")
     # # スクリプトファイルをファイル名順でソート

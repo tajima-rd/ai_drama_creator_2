@@ -8,12 +8,34 @@ from ..utils.propmpt_utils import PromptType, PromptUtils
 from ..core.project import Project
 
 class ArchitectAgent(BaseAgent):
-    def create_profile(self, project: Project, agenda: Agenda, data_dict: dict) -> Character:
+    def __init__(self, generator, project: Project, agenda: Agenda=None):
+        super().__init__(generator)
+        self.project = project
+        self.agenda = agenda
+
+    def define_characters(self, role_type: str, data_dict: dict):
+        # project.results から該当するパスを取得 ("protagonist" または "duotagonist")
+        char_path = self.project.results[role_type]
+
+        if not char_path.exists():
+            print(f"------ {role_type.capitalize()} ------")
+            # 生成モード
+            character = self._create_profile(data_dict)
+            print(f"{role_type.capitalize()} result generated and saved.")
+        else:
+            # ロードモード
+            char_data = self.load_json(char_path)
+            character = Character(**char_data)
+            print(f"{role_type.capitalize()} loaded from file.")
+        
+        return character
+    
+    def _create_profile(self, data_dict: dict) -> Character:
         # パスの解決
-        prompt_path = PromptUtils.get_path(project.prompt_dir, PromptType.CREATE_CHARACTER)
+        prompt_path = PromptUtils.get_path(self.project.prompt_dir, PromptType.CREATE_CHARACTER)
 
         variables = {
-            "agenda": agenda.concept,
+            "agenda": self.agenda.concept,
             "action": data_dict["action"],
             "role_type": data_dict["role_type"],
             "name": data_dict["name"],
@@ -21,6 +43,9 @@ class ArchitectAgent(BaseAgent):
             "bond": data_dict["bond"],
             "gender": data_dict["gender"],
             "personality": data_dict["personality"],
+            "cognitive_bias": data_dict["cognitive_bias"],
+            "value_system": data_dict["value_system"],
+            "dialogue_example": data_dict["dialogue_example"],
             "age": data_dict["age"],
             "speaking_style": data_dict["speaking_style"],
             "catchphrase": data_dict["catchphrase"],
@@ -35,9 +60,9 @@ class ArchitectAgent(BaseAgent):
         
         if response.status == "ready" and response.result:
             if data_dict["role_type"] == "protagonist":
-                response.result.save_json(project.results["protagonist"])
+                response.result.save_json(self.project.results["protagonist"])
             elif data_dict["role_type"] == "duotagonist":
-                response.result.save_json(project.results["duotagonist"])
+                response.result.save_json(self.project.results["duotagonist"])
             return response.result
         else:
             raise ValueError(f"AIからのプロフィール生成に失敗しました: {response.message}")
