@@ -38,8 +38,9 @@ class Project:
         # 関連ディレクトリの設定
         self.output_dir = self.project_dir / "output"
         self.scene_dir = self.output_dir / "scenes"
+        self.scenario_dir = self.output_dir / "scenarios"
         self.script_dir = self.output_dir / "scripts"
-        self.drama_dir = self.output_dir / "drama"
+        self.drama_dir = self.output_dir / "dramas"
 
         # LLMの設定
         self.llm_client = llm_client
@@ -64,6 +65,7 @@ class Project:
         for directory in [
                 self.output_dir, 
                 self.scene_dir, 
+                self.scenario_dir, 
                 self.script_dir, 
                 self.drama_dir
             ]:

@@ -10,6 +10,7 @@ class PromptType(Enum):
     CREATE_REPORT = "create_report.txt"
     CREATE_SCRIPT = "create_script.txt"
     CREATE_SCENE = "create_scene.txt"
+    CREATE_SCENARIO = "create_scenario.txt"
     CREATE_REGION_SUMMARY = "create_region_summary.txt"
     
 

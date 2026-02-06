@@ -225,12 +225,19 @@ def main():
     # 進行状況の表示
     previous_time = watcher(start_time, previous_time)
 
-    print("--- [07] Write the scripts ---")
+    print("--- [07] Write the scenario ---")
     writer.protagonist = protagonist
     writer.duotagonist = duotagonist
     writer.scenes = scenes
 
+    writer.write_scenarios(spot_data)
+
+    # Show the time for writing the scenario
+    previous_time = watcher(start_time, previous_time)
+
+    print("--- [08] Write the scripts ---")
     scripts = writer.write_scripts(spot_data)
+
     previous_time = watcher(start_time, previous_time)
 
     # print("--- [07] 音声生成 ---")
