@@ -12,6 +12,7 @@ class Dialogue(SaveableModel):
 
 class Script(SaveableModel):
     """台本生成のメイン構造"""
+    scene_id: str = Field(..., description="シーンID")
     scene_title: str = Field(..., description="シーンタイトル")
     character_count: str = Field(..., description="総文字数（Total: ○○文字）")
     duration: str = Field(..., description="想定尺（分・秒）")

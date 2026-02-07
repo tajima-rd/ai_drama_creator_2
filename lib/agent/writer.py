@@ -85,6 +85,7 @@ class WriterAgent(BaseAgent):
 
         variables = {
             "title": scene_design.title,
+            "scene_id": scene_design.order,
             "location": scene_design.location,
             "scene_summary": scene_design.scene_summary,
             "estimated_duration": duration,

@@ -18,7 +18,6 @@ class ArchitectAgent(BaseAgent):
         char_path = self.project.results[role_type]
 
         if not char_path.exists():
-            print(f"------ {role_type.capitalize()} ------")
             # 生成モード
             character = self._create_profile(data_dict)
             print(f"{role_type.capitalize()} result generated and saved.")

@@ -1,0 +1,28 @@
+[14:56:59] --- 処理を開始します ---
+[14:56:59] Elapsed（section）: 0.00秒
+
+--- [01] Analyze the region ---
+[14:57:15] Elapsed（section）: 15.89秒
+
+--- [02] Analyze the current issue
+[14:57:24] Elapsed（section）: 8.81秒
+
+--- [03] Compose the agenda ---
+[14:57:38] Elapsed（section）: 14.18秒
+
+--- [04] Define the characters---
+[14:58:05] Elapsed（section）: 26.39秒
+
+--- [05] Design the story plot ---
+[14:58:14] Elapsed（section）: 9.56秒
+
+--- [06] Define the scene settings ---
+[15:01:38] Elapsed（section）: 203.46秒
+
+--- [07] Write the scenario ---
+[15:05:31] Elapsed（section）: 232.92秒
+
+--- [08] Write the scripts ---
+[15:09:35] Elapsed（entire）: 756.01秒
+
+[15:09:35] Elapsed（section）: 244.79秒

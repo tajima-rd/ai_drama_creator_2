@@ -33,9 +33,9 @@ cd "$TEMP_DIR"
 # 4. ビルドとインストール
 echo "🏗️  ビルドを開始します。hipcc が動くため 10分〜20分かかります..."
 
-# --- 3.5 setup.py の allowed_archs に gfx1100 を追加 ---
+# --- 3.5 setup.py の allowed_archs に gfx1100 / gfx1151 を追加 ---
 echo "🔧 setup.py に gfx1100 を登録中..."
-sed -i 's/"gfx942"\]/"gfx942", "gfx1100"\]/g' setup.py
+sed -i 's/"gfx942"\]/"gfx942", "gfx1100", "gfx1151"\]/g' setup.py
 
 # 念のため置換が成功したか確認表示
 grep "allowed_archs =" setup.py

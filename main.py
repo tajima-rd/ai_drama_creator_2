@@ -36,7 +36,7 @@ config_path = Path("/home/yufujimoto/Git/ai_drama_creator_2/project/project.json
 def watcher(start_time, previous_time):
     current_time = datetime.now()
     elapsed_ent = current_time - start_time
-    elapsed_sec = previous_time - current_time
+    elapsed_sec = current_time - previous_time
 
     print(f"[{current_time.strftime('%H:%M:%S')}] Elapsed（entire）: {elapsed_ent.total_seconds():.2f}秒")
     print(f"[{current_time.strftime('%H:%M:%S')}] Elapsed（section）: {elapsed_sec.total_seconds():.2f}秒")
@@ -101,6 +101,49 @@ def load_client(project: Project):
     generator = LlamaCppTextGenerator(api_client=client, write_config=write_config)
     
     return generator
+
+def generate_sound_drama(project:Project, writer: WriterAgent, protagonist:Character, duotagonist:Character):
+    # モデル初期化
+    tts_model = Qwen3TTS(
+        model_name="Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+        device="cuda:0",
+        attention_type=ATTENTION_TYPE.SDPA
+    )
+
+    # 各ファイルを処理
+    for script in writer.scripts:
+        # 出力ファイル名を決定（例：1_audio.wav）
+        base_name = script.scene_id + script.scene_title
+        output_file = project.drama_dir / f"{base_name}.wav"
+
+        if not os.path.exists(output_file):
+            # スクリプトデータの抽出
+            dialogues = []
+            speakers = []
+            intructs = []
+            for dialogue in script.body:
+                dialogues.append(dialogue.dialogue)
+                intructs.append(dialogue.instruct)
+
+                if dialogue.character == protagonist.name:
+                    speakers.append("Aiden")
+                elif dialogue.character == duotagonist.name:
+                    speakers.append("Onno_Anna")
+                else:
+                    speakers.append("Aiden")
+
+            # 音声合成
+            tts_model.generate(
+                file_name=output_file,
+                text=dialogues,
+                language="japanese",
+                speaker=speakers,
+                instruct=intructs
+            )
+
+            print(f"音声ファイルを保存しました: {output_file}")
+        else:
+            print(f"音声ファイルは既に存在します: {output_file}")
 
 def main():
     start_time = datetime.now()
@@ -236,61 +279,12 @@ def main():
     previous_time = watcher(start_time, previous_time)
 
     print("--- [08] Write the scripts ---")
-    scripts = writer.write_scripts(spot_data)
+    writer.write_scripts()
 
     previous_time = watcher(start_time, previous_time)
 
-    # print("--- [07] 音声生成 ---")
-    # # スクリプトファイルをファイル名順でソート
-    # script_files = sorted(project.script_dir.glob("*.json"), key=lambda p: int(p.stem.split("_")[0]))
-
-    # # モデル初期化
-    # tts_model = Qwen3TTS(
-    #     model_name="Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
-    #     device="cuda:0",
-    #     attention_type=ATTENTION_TYPE.SDPA
-    # )
-
-    # # 各ファイルを処理
-    # for script_file in script_files:
-    #     with open(script_file, "r", encoding="utf-8") as f:
-    #         data = json.load(f)
-
-    #     # 出力ファイル名を決定（例：1_audio.wav）
-    #     base_name = script_file.stem.split("_")[0]
-    #     output_file = project.drama_dir / f"{base_name}_audio.wav"
-
-    #     if not os.path.exists(output_file):
-    #         # スクリプトデータの抽出
-    #         script_body = data["script_report"]["script_body"]
-    #         texts = [item["dialogue"] for item in script_body]
-    #         languages = ["japanese"] * len(texts)
-
-    #         speakers = []
-    #         for item in script_body:
-    #             character = item["speaker"] 
-    #             if character == pro_data_dict["name"]:
-    #                 speakers.append(pro_data_dict["voice"])
-    #             elif character == duo_data_dict["name"]:
-    #                 speakers.append(duo_data_dict["voice"])
-    #             else:
-    #                 speakers.append("Dylan")
-
-    #         # 音声合成
-    #         tts_model.generate(
-    #             file_name=output_file,
-    #             text=texts,
-    #             language=languages,
-    #             speaker=speakers
-    #         )
-
-    #         print(f"音声ファイルを保存しました: {output_file}")
-    #     else:
-    #         print(f"音声ファイルは既に存在します: {output_file}")
-    
-    # current_time = datetime.now()
-    # elapsed = current_time - start_time
-    # print(f"[{current_time.strftime('%H:%M:%S')}] 経過時間: {elapsed.total_seconds():.2f}秒")
+    print("--- [09] Generate sound drama ---")
+    generate_sound_drama(project, writer.scripts, protagonist, duotagonist)
 
 if __name__ == "__main__":
     main()
