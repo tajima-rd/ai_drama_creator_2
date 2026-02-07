@@ -125,12 +125,12 @@ def generate_sound_drama(project:Project, writer: WriterAgent, protagonist:Chara
                 dialogues.append(dialogue.dialogue)
                 intructs.append(dialogue.instruct)
 
-                if dialogue.character == protagonist.name:
-                    speakers.append("Aiden")
-                elif dialogue.character == duotagonist.name:
-                    speakers.append("Onno_Anna")
+                if dialogue.character == protagonist.profile.name:
+                    speakers.append("aiden")
+                elif dialogue.character == duotagonist.profile.name:
+                    speakers.append("ono_anna")
                 else:
-                    speakers.append("Aiden")
+                    speakers.append("aiden")
 
             # 音声合成
             tts_model.generate(
@@ -284,7 +284,7 @@ def main():
     previous_time = watcher(start_time, previous_time)
 
     print("--- [09] Generate sound drama ---")
-    generate_sound_drama(project, writer.scripts, protagonist, duotagonist)
+    generate_sound_drama(project, writer, protagonist, duotagonist)
 
 if __name__ == "__main__":
     main()
