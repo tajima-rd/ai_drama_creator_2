@@ -1,5 +1,6 @@
 # lib/agent/base_agent.py
 
+from dataclasses import Field
 import time
 import re
 import json
@@ -8,7 +9,7 @@ import pydantic
 from pydantic_core import ValidationError
 
 from pathlib import Path
-from typing import Type, TypeVar, Dict, Any
+from typing import Type, TypeVar, Dict, Any, Optional
 
 from ..genai.generators import TextGenerator
 from ..utils.propmpt_utils import PromptUtils

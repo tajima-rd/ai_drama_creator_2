@@ -4,7 +4,7 @@ set -e
 # --- 設定項目 ---
 # /opt/rocm がシンボリックリンクでない場合は rocm-6.2 等の実体を指定してください
 ROCM_PATH="/opt/rocm"
-GPU_TARGET="gfx1100"
+GPU_TARGET="gfx1100" # gfx1151
 TEMP_DIR="flash-attention-build"
 
 echo "🚀 ROCm 用 Flash Attention のビルドを開始します（Torch 保護モード）"
@@ -34,7 +34,7 @@ cd "$TEMP_DIR"
 echo "🏗️  ビルドを開始します。hipcc が動くため 10分〜20分かかります..."
 
 # --- 3.5 setup.py の allowed_archs に gfx1100 / gfx1151 を追加 ---
-echo "🔧 setup.py に gfx1100 を登録中..."
+echo "🔧 setup.py に gfx1100 と gfx1151 を登録中..."
 sed -i 's/"gfx942"\]/"gfx942", "gfx1100", "gfx1151"\]/g' setup.py
 
 # 念のため置換が成功したか確認表示

@@ -43,10 +43,10 @@ class WriterAgent(BaseAgent):
         scenarios = []
 
         for scene in self.scenes:
-            order = scene.order
-            scenario_file = self.project.scenario_dir / f"{order}_scenario.json"
+            scene_id = scene.scene_id
+            scenario_file = self.project.scenario_dir / f"{scene_id}_scenario.json"
             
-            spot_row = spot_data[spot_data["order"] == order].iloc[0]
+            spot_row = spot_data[spot_data["scene_id"] == scene_id].iloc[0]
             duration = spot_row["visit_time"]
 
             if not scenario_file.exists():
@@ -64,16 +64,16 @@ class WriterAgent(BaseAgent):
         scripts = []
 
         for scenario in self.scenarios:
-            order = scenario.scene_id
-            script_file = self.project.script_dir / f"{order}_script.json"
+            scene_id = scenario.scene_id
+            script_file = self.project.script_dir / f"{scene_id}_script.json"
 
             if not script_file.exists():
-                print(f"Script {order}: {scenario.scene_title} を台本化中...")
+                print(f"Script {scene_id}: {scenario.scene_title} を台本化中...")
                 # 修正：Scenarioオブジェクトを直接渡す
                 script = self._create_script(scenario)
                 scripts.append(script)
             else:
-                print(f"Script {order} はロードします。")
+                print(f"Script {scene_id} はロードします。")
                 data = self.load_json(script_file)
                 scripts.append(Script(**data))
 
@@ -85,7 +85,7 @@ class WriterAgent(BaseAgent):
 
         variables = {
             "title": scene_design.title,
-            "scene_id": scene_design.order,
+            "scene_id": scene_design.scene_id,
             "location": scene_design.location,
             "scene_summary": scene_design.scene_summary,
             "estimated_duration": duration,
@@ -100,7 +100,7 @@ class WriterAgent(BaseAgent):
         response = self._execute(prompt_path, variables, ScenarioResponse)
         
         if response.status == "ready" and response.result:
-            scenario_file = self.project.scenario_dir / f"{scene_design.order}_scenario.json"
+            scenario_file = self.project.scenario_dir / f"{scene_design.scene_id}_scenario.json"
             response.result.save_json(scenario_file)
             return response.result
         else:

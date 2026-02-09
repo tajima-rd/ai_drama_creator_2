@@ -5,7 +5,7 @@ from ..agent.base_agent import SaveableModel
 from .response import BaseResponse
 
 class SceneDesign(SaveableModel):
-    order: int = Field(..., description="ソート用の番号")
+    scene_id: int = Field(..., description="ソート用の番号")
     title: str = Field(..., description="シーン設計案（仮タイトル）")
     location: str = Field(..., description="舞台となる場所の名称")
     scene_summary: str = Field(..., description="シーンの概要")

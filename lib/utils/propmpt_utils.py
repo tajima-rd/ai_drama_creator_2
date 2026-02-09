@@ -13,6 +13,16 @@ class PromptType(Enum):
     CREATE_SCENE_PLOT = "create_scene_plot.txt"
     CREATE_SCENARIO = "create_scenario.txt"
     CREATE_REGION_SUMMARY = "create_region_summary.txt"
+
+    REVIEW_AGENDA = "review_agenda.txt"
+    REVIEW_CHARACTER = "review_character.txt"
+    REVIEW_PLOT = "review_plot.txt"
+    REVIEW_REPORT = "review_report.txt"
+    REVIEW_SCRIPT = "review_script.txt"
+    REVIEW_SCENE = "review_scene.txt"
+    REVIEW_SCENE_PLOT = "review_scene_plot.txt"
+    REVIEW_SCENARIO = "review_scenario.txt"
+    REVIEW_REGION_SUMMARY = "review_region_summary.txt"
     
 
 class PromptUtils:

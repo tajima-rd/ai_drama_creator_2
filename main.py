@@ -141,9 +141,9 @@ def generate_sound_drama(project:Project, writer: WriterAgent, protagonist:Chara
                 instruct=intructs
             )
 
-            print(f"音声ファイルを保存しました: {output_file}")
+            print(f"Sound file generated: {output_file}")
         else:
-            print(f"音声ファイルは既に存在します: {output_file}")
+            print(f"Sound file already exists: {output_file}")
 
 def main():
     start_time = datetime.now()
@@ -169,7 +169,12 @@ def main():
     # Run the analysis agent
     print(f"--- [01] Analyze the region ---")
     spot_data = gpd.read_file(project.gis_data)
-    region_summary = analyst.analyze_region(spot_data)
+
+    print("Analyzing region data from:", project.gis_data)
+    analyst.analyze_region(spot_data)
+
+    print("Reviewing the region summary...")
+    director.review_region_summary(analyst)
 
     # Show the time for analyzing
     previous_time = watcher(start_time, previous_time)
@@ -252,39 +257,41 @@ def main():
     # Run the designer agent
     designer.protagonist = protagonist
     designer.duotagonist = duotagonist
-    designer.region_summary = region_summary
+    designer.region_summary = analyst.region_summary
     plot_design = designer.design_plot()
 
     # Show the time for designing the plot
     previous_time = watcher(start_time, previous_time)  
 
-    print("--- [06] Define the scene settings ---")
-    director.plotDesign = plot_design
-    director.protagonist = protagonist
-    director.duotagonist = duotagonist
+    # print("--- [06] Define the scene settings ---")
+    # director.plotDesign = plot_design
+    # director.protagonist = protagonist
+    # director.duotagonist = duotagonist
 
-    scenes = director.setup_scenes(spot_data)
+    # scenes = director.setup_scenes(spot_data)
 
-    # 進行状況の表示
-    previous_time = watcher(start_time, previous_time)
+    # # 進行状況の表示
+    # previous_time = watcher(start_time, previous_time)
 
-    print("--- [07] Write the scenario ---")
-    writer.protagonist = protagonist
-    writer.duotagonist = duotagonist
-    writer.scenes = scenes
+    # print("--- [07] Write the scenario ---")
+    # writer.protagonist = protagonist
+    # writer.duotagonist = duotagonist
+    # writer.scenes = scenes
 
-    writer.write_scenarios(spot_data)
+    # writer.write_scenarios(spot_data)
 
-    # Show the time for writing the scenario
-    previous_time = watcher(start_time, previous_time)
+    # # Show the time for writing the scenario
+    # previous_time = watcher(start_time, previous_time)
 
-    print("--- [08] Write the scripts ---")
-    writer.write_scripts()
+    # print("--- [08] Write the scripts ---")
+    # writer.write_scripts()
 
-    previous_time = watcher(start_time, previous_time)
+    # previous_time = watcher(start_time, previous_time)
 
-    print("--- [09] Generate sound drama ---")
-    generate_sound_drama(project, writer, protagonist, duotagonist)
+    # print("--- [09] Generate sound drama ---")
+    # generate_sound_drama(project, writer, protagonist, duotagonist)
+
+    # watcher(start_time, previous_time)
 
 if __name__ == "__main__":
     main()

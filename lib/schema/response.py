@@ -21,3 +21,11 @@ class BaseResponse(BaseModel, Generic[T]):
         None, 
         description="処理結果の本体。エラー時はNone"
     )
+
+class SimpleReturnValue(BaseModel):
+    key: str = Field(..., description="返却されるキー名")
+    value: str = Field(..., description="返却される文字列データ")
+    description: Optional[str] = Field(None, description="データの説明")
+
+
+SimpleResponse = BaseResponse[SimpleReturnValue]

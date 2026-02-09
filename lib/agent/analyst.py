@@ -10,9 +10,18 @@ from ..schema.geography import RegionSummaryResponse, RegionSummary
 from ..core.project import Project
 
 class AnalysisAgent(BaseAgent):
-    def __init__(self, generator, project: Project):
+    def __init__(
+            self, 
+            generator, 
+            project: Project, 
+            region_summary: RegionSummary=None, 
+            report: Report=None
+        ):
+
         super().__init__(generator)
         self.project = project
+        self.region_summary = region_summary
+        self.report = report
     
     def analyze_current_issues(self, current_issues:str):
         analysis_path = self.project.results["analysis"]
@@ -27,6 +36,8 @@ class AnalysisAgent(BaseAgent):
             analysis_data = self.load_json(analysis_path)
             report = Report(**analysis_data)
             print(f"Analysis result loaded from: {analysis_path}")
+        
+        self.report = report
         return report
 
     def analyze_region(self, spot_data: gpd.GeoDataFrame):
@@ -40,15 +51,16 @@ class AnalysisAgent(BaseAgent):
                 spot_list += f"name: {row['name']} / explanation: {row['explanation']}\n"
 
             # AIに分析を依頼
-            self.region_summary = self._create_region_summary(spot_list)
+            region_summary = self._create_region_summary(spot_list)
             print(f"Region analysis saved to: {analysis_path}")
         else:
             # ロードモード（既にある場合は再利用）
             data = self.load_json(analysis_path)
             # JSONから RegionSummary オブジェクトに復元
-            self.region_summary = RegionSummary(**data)
+            region_summary = RegionSummary(**data)
             print(f"Region analysis loaded from: {analysis_path}")
         
+        self.region_summary = region_summary
         return self.region_summary
 
     def _create_report(self, current_situation: dict) -> Report:
