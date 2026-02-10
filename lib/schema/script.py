@@ -12,10 +12,10 @@ class Dialogue(SaveableModel):
 
 class Script(SaveableModel):
     """台本生成のメイン構造"""
-    scene_id: str = Field(..., description="シーンID")
-    scene_title: str = Field(..., description="シーンタイトル")
-    character_count: str = Field(..., description="総文字数（Total: ○○文字）")
-    duration: str = Field(..., description="想定尺（分・秒）")
+    scene_id: Optional[int] = Field(None, description="シーンID")
+    title: Optional[str] = Field(None, description="シーンタイトル")
+    character_count: Optional[int] = Field(None, description="総文字数（Total:）")
+    duration: Optional[int] = Field(None, description="想定尺（分・秒）")
     body: List[Dialogue] = Field(..., description="交互発話のリスト")
 
 ScriptResponse = BaseResponse[Script]

@@ -6,7 +6,11 @@
     "gis_data": "./project/gis_data.gpkg",
     "rubi_map": "./project/rubi_map.json",
     "llm_client": "LlamaCpp",
-    "llm_model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
-    "llm_api": "http://localhost:8080/chat/completions"
+    "llm_model": "Qwen3-Coder-Next-Q4_K_M.gguf",
+    "llm_api": "http://172.30.65.101:8080/chat/completions",
+    "tts_client": "Qwen3TTS",
+    "tts_model": "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+    "tts_api": "http://172.30.65.101:8000/generate"
   }
 }
+

@@ -23,9 +23,8 @@ class BaseResponse(BaseModel, Generic[T]):
     )
 
 class SimpleReturnValue(BaseModel):
-    key: str = Field(..., description="返却されるキー名")
-    value: str = Field(..., description="返却される文字列データ")
+    key: Optional[str] = Field(None, description="返却されるキー名")
+    value: Optional[str] = Field(None, description="返却される値")
     description: Optional[str] = Field(None, description="データの説明")
-
 
 SimpleResponse = BaseResponse[SimpleReturnValue]

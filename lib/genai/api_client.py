@@ -78,6 +78,27 @@ class GeminiApiClient(ApiClient):
         self.client = genai.Client(api_key=self.api_key)
         print(f"GeminiApiClientがモデル '{self.model_name}' 用に設定されました。")
 
+
+# ==============================================================================
+#  Qwen3-TTS API クライアント
+# ==============================================================================
+class Qwen3TTSApiClient(ApiClient):
+    client_type = "qwen3tts"
+
+    def __init__(
+            self, 
+            api_key: str, 
+            model_name: str, 
+            api_url: str
+        ):
+        super().__init__(api_key, model_name)    
+        self.api_url = api_url
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
+        }
+        print(f"Qwen3TTS ApiClientがモデル '{self.model_name}' (URL: {self.api_url}) 用に初期化されました。")
+
 # ==============================================================================
 #  Llama.cpp API クライアント
 # ==============================================================================

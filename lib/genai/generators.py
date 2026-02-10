@@ -13,7 +13,7 @@ from typing import (
 )
 from dataclasses import dataclass
 
-from .api_client import ApiClient
+from .api_client import ApiClient, Qwen3TTSApiClient
 
 @dataclass
 class WriteConfig:
@@ -54,6 +54,21 @@ class TextGenerator(AbstractBaseGenerator):
     # このクラス独自のgenerateメソッドを新たに抽象メソッドとして定義
     @abc.abstractmethod
     def generate(self, messages: List[Dict[str, str]]) -> Optional[str]:
+        pass
+
+class SoundGenerator(AbstractBaseGenerator):
+    def __init__(self, api_client: ApiClient, speech_config: Optional[SpeechConfig] = None):
+        super().__init__(api_client, speech_config)
+
+    @abc.abstractmethod
+    def generate(
+            self, 
+            texts: List[Any], 
+            languages: Union[str, List[Any]], 
+            speakers: List[Any],
+            instructs: List[Any],
+            output_path: Path
+        ) -> Optional[Path]:
         pass
 
 class GeminiTextGenerator(TextGenerator):
@@ -117,7 +132,7 @@ class LlamaCppTextGenerator(TextGenerator):
                 self.api_client.api_url,
                 headers=self.api_client.headers,
                 data=json.dumps(payload),
-                timeout=120
+                timeout=1200
             )
             response.raise_for_status()
             response_data = response.json()
@@ -125,6 +140,53 @@ class LlamaCppTextGenerator(TextGenerator):
         except Exception as e:
             print(f"Llama.cpp APIでエラーが発生しました: {e}", file=sys.stderr)
             raise
+
+class QwenSoundGenerator(SoundGenerator):
+    def __init__(self, api_client: Qwen3TTSApiClient):
+        # Qwenにはconfigが不要なため、親クラスにはNoneを明示して初期化
+        super().__init__(api_client, None)
+
+    def generate(
+            self, 
+            texts: List[Any], 
+            languages: Union[str, List[Any]],
+            speakers: List[Any],
+            instructs: List[Any],
+            output_path: Path
+        ) -> Optional[Path]:
+
+        # languages が単一文字列の場合はリストに拡張
+        if isinstance(languages, str):
+            languages = [languages] * len(texts)
+
+        params = {
+            "text": texts,
+            "language": languages,
+            "speaker": speakers,
+            "instruct": instructs
+        }
+
+        try:
+            # api_client から URL を取得してリクエスト
+            response = requests.get(
+                self.api_client.api_url, 
+                params=params, 
+                headers=self.api_client.headers,
+                timeout=300 # 音声合成待ち時間を考慮
+            )
+            
+            if response.status_code == 200:
+                with open(output_path, "wb") as f:
+                    f.write(response.content)
+                return output_path
+            else:
+                print(f"API Error ({response.status_code}): {response.text}", file=sys.stderr)
+                return None
+                
+        except Exception as e:
+            print(f"QwenSoundGenerator実行中に例外が発生しました: {e}", file=sys.stderr)
+            return None
+
 
 # ==============================================================================
 # 音声生成器クラス (抽象)

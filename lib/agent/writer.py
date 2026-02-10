@@ -20,7 +20,7 @@ class WriterAgent(BaseAgent):
             duotagonist: Character=None, 
             scenes: list[SceneDesign]=[],
             scenarios: list[Scenario]=[],
-            scripts: list[Script]=None
+            scripts: list[Script]=[]
         ):
         super().__init__(generator)
         self.project = project
@@ -46,11 +46,8 @@ class WriterAgent(BaseAgent):
             scene_id = scene.scene_id
             scenario_file = self.project.scenario_dir / f"{scene_id}_scenario.json"
             
-            spot_row = spot_data[spot_data["scene_id"] == scene_id].iloc[0]
-            duration = spot_row["visit_time"]
-
             if not scenario_file.exists():
-                scenario = self._create_scenario(scene, duration)
+                scenario = self._create_scenario(scene)
                 scenarios.append(scenario)
             else:
                 data = self.load_json(scenario_file)
@@ -60,7 +57,6 @@ class WriterAgent(BaseAgent):
         return scenarios
 
     def write_scripts(self):
-        print("--- [07] 台本執筆 (Scenario to Script) ---")
         scripts = []
 
         for scenario in self.scenarios:
@@ -68,54 +64,58 @@ class WriterAgent(BaseAgent):
             script_file = self.project.script_dir / f"{scene_id}_script.json"
 
             if not script_file.exists():
-                print(f"Script {scene_id}: {scenario.scene_title} を台本化中...")
+                print(f"Script {scene_id}: Writing the script for '{scenario.title}' ...")
                 # 修正：Scenarioオブジェクトを直接渡す
                 script = self._create_script(scenario)
                 scripts.append(script)
             else:
-                print(f"Script {scene_id} はロードします。")
+                print(f"Script '{scene_id}' has already been created. Loading from file...")
                 data = self.load_json(script_file)
                 scripts.append(Script(**data))
 
         self.scripts = scripts
         return self.scripts
 
-    def _create_scenario(self, scene_design: SceneDesign, duration: int) -> Scenario:
+    def _create_scenario(self, scene: SceneDesign) -> Scenario:
         prompt_path = PromptUtils.get_path(self.project.prompt_dir, PromptType.CREATE_SCENARIO)
 
         variables = {
-            "title": scene_design.title,
-            "scene_id": scene_design.scene_id,
-            "location": scene_design.location,
-            "scene_summary": scene_design.scene_summary,
-            "estimated_duration": duration,
-            "protagonist_json": self.protagonist.model_dump_json(indent=2),
-            "duotagonist_json": self.duotagonist.model_dump_json(indent=2),
-            "atmosphere": scene_design.atmosphere,
-            "narrative_tone": scene_design.narrative_tone,
-            "spatial_direction": scene_design.spatial_direction,
+            "title": scene.title,
+            "scene_id": scene.scene_id,
+            "location": scene.location,
+            "scene_summary": scene.scene_summary,
+            "estimated_duration": scene.duration,
+            "protagonist_json": self.protagonist.model_dump_json(),
+            "duotagonist_json": self.duotagonist.model_dump_json(),
+            "atmosphere": scene.atmosphere,
+            "narrative_tone": scene.narrative_tone,
+            "spatial_direction": scene.spatial_direction,
             "rubi_json": self.rubi_map
         }
-        
+        print(f"Writing scenario for Scene {scene.scene_id}: {scene.title}...")
         response = self._execute(prompt_path, variables, ScenarioResponse)
         
         if response.status == "ready" and response.result:
-            scenario_file = self.project.scenario_dir / f"{scene_design.scene_id}_scenario.json"
-            response.result.save_json(scenario_file)
-            return response.result
+            scenario_file = self.project.scenario_dir / f"{scene.scene_id}_scenario.json"
+            scenario = response.result
+            scenario.scene_id = scene.scene_id
+            scenario.title = scene.title
+
+            scenario.save_json(scenario_file)
+            return scenario
         else:
-            raise ValueError(f"シナリオ生成失敗: {response.message}")
+            raise ValueError(f"Failed to create scenario for Scene {scene.scene_id}: {response.message}")
 
     def _create_script(self, scenario: Scenario) -> Script:
         prompt_path = PromptUtils.get_path(self.project.prompt_dir, PromptType.CREATE_SCRIPT)
 
         # 修正：入力変数を scenario_text 主体に絞り込む
         variables = {
-            "title": scenario.scene_title,
+            "title": scenario.title,
             "scenario_text": scenario.scenario_text,
             "character_count": scenario.character_count,
-            "protagonist_json": self.protagonist.model_dump_json(indent=2),
-            "duotagonist_json": self.duotagonist.model_dump_json(indent=2),
+            "protagonist_json": self.protagonist.model_dump_json(),
+            "duotagonist_json": self.duotagonist.model_dump_json(),
             "rubi_json": self.rubi_map
         }
         
@@ -126,4 +126,4 @@ class WriterAgent(BaseAgent):
             response.result.save_json(script_file)
             return response.result
         else:
-            raise ValueError(f"台本生成失敗: {response.message}")
+            raise ValueError(f"Failed to create script for Scene {scenario.scene_id}: {response.message}")

@@ -13,7 +13,10 @@ class Project:
         base_path: Path = None,
         llm_client: Optional[str] = "LlamaCpp",
         llm_model: Optional[str] = "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
-        llm_api: Optional[str] = "http://localhost:8080/chat/completions"
+        llm_api: Optional[str] = "http://localhost:8080/chat/completions",
+        tts_client: Optional[str] = "Qwen3TTS",
+        tts_model: Optional[str] = "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+        tts_api: Optional[str] = "http://localhost:8000/generate"
     ):
         self.project_name = project_name
         self.description = description
@@ -46,6 +49,11 @@ class Project:
         self.llm_client = llm_client
         self.llm_model = llm_model
         self.llm_api = llm_api
+
+        # TTSの設定
+        self.tts_client = tts_client
+        self.tts_model = tts_model
+        self.tts_api = tts_api
 
         # 中間生成ファイルのパスも定義しておくと便利
         self.results = {
@@ -95,7 +103,10 @@ class Project:
             base_path=config_path.parent,
             llm_client=data.get("llm_client", ""),
             llm_model=data.get("llm_model", ""),
-            llm_api=data.get("llm_api", "")
+            llm_api=data.get("llm_api", ""),
+            tts_client=data.get("tts_client", ""),
+            tts_model=data.get("tts_model", ""),
+            tts_api=data.get("tts_api", "")
         )
 
     def __str__(self):

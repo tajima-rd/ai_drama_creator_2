@@ -10,10 +10,10 @@ from enum import Enum
 
 # core / schema / genai
 from lib.core.project import Project
-from lib.genai.api_client import GeminiApiClient, ApiKeyManager, LlamaCppApiClient
+from lib.genai.api_client import GeminiApiClient, ApiKeyManager, LlamaCppApiClient, Qwen3TTSApiClient
 from lib.genai.generators import WriteConfig, GeminiTextGenerator, LlamaCppTextGenerator
 
-from lib.genai.tts import Qwen3TTS, ATTENTION_TYPE
+from lib.genai.qwen_tts_local import Qwen3TTS, ATTENTION_TYPE
 
 from lib.schema.report import Report
 from lib.schema.geography import RegionSummary
@@ -72,7 +72,7 @@ def init_project():
 
     return project
 
-def load_client(project: Project):
+def load_llm_client(project: Project):
     """
     プロジェクト設定に基づいて、適切なLLMクライアントとジェネレーターを初期化する
     """
@@ -102,7 +102,26 @@ def load_client(project: Project):
     
     return generator
 
-def generate_sound_drama(project:Project, writer: WriterAgent, protagonist:Character, duotagonist:Character):
+def load_tts_client(project: Project):
+    """
+    プロジェクト設定に基づいて、適切なTTSクライアントを初期化する
+    """
+    # 1. APIキーなどの機密情報は環境変数から取得
+    tts_key = os.getenv("TTS_API_KEY", "dummy") # デフォルト値を設定可能
+
+    # 2. クライアントの切り替え
+    if project.tts_client == "Qwen3TTS":
+        client = Qwen3TTSApiClient(
+            model_name=project.tts_model,
+            api_url=project.tts_api,
+            api_key=tts_key
+        )
+    else:
+        raise ValueError(f"未対応のTTSクライアントです: {project.tts_client}")
+
+    return client
+
+def generate_sound_drama_locally(project:Project, writer: WriterAgent, protagonist:Character, duotagonist:Character, language: str="japanese"):
     # モデル初期化
     tts_model = Qwen3TTS(
         model_name="Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
@@ -113,7 +132,7 @@ def generate_sound_drama(project:Project, writer: WriterAgent, protagonist:Chara
     # 各ファイルを処理
     for script in writer.scripts:
         # 出力ファイル名を決定（例：1_audio.wav）
-        base_name = script.scene_id + script.scene_title
+        base_name = script.scene_id + script.title
         output_file = project.drama_dir / f"{base_name}.wav"
 
         if not os.path.exists(output_file):
@@ -131,14 +150,62 @@ def generate_sound_drama(project:Project, writer: WriterAgent, protagonist:Chara
                     speakers.append("ono_anna")
                 else:
                     speakers.append("aiden")
+                
+                if isinstance(language, str):
+                    language_list = [language] * len(script.body)
+                else:
+                    language_list = language
 
             # 音声合成
             tts_model.generate(
                 file_name=output_file,
                 text=dialogues,
-                language="japanese",
+                language=language_list,
                 speaker=speakers,
                 instruct=intructs
+            )
+
+            print(f"Sound file generated: {output_file}")
+        else:
+            print(f"Sound file already exists: {output_file}")
+
+def generate_sound_drama(project:Project, writer: WriterAgent, protagonist:Character, duotagonist:Character, language: str="japanese"):
+    # TTSクライアントの初期化（QwenSoundGenerator または Qwen3TTS_RemoteProxy）
+    tts_client = load_tts_client(project)
+
+    for script in writer.scripts:
+        base_name = str(script.scene_id) + "_" + script.title
+        output_file = project.drama_dir / f"{base_name}.wav"
+
+        if not os.path.exists(output_file):
+            dialogues = []
+            speakers = []
+            intructs = []
+            
+            for dialogue in script.body:
+                dialogues.append(dialogue.dialogue)
+                intructs.append(dialogue.instruct)
+
+                if dialogue.character == protagonist.profile.name:
+                    speakers.append("aiden")
+                elif dialogue.character == duotagonist.profile.name:
+                    speakers.append("ono_anna")
+                else:
+                    speakers.append("aiden")
+            
+            # --- 言語リストの作成は、全てのセリフ（dialogues）を溜めた後に実行 ---
+            if isinstance(language, str):
+                language_list = [language] * len(dialogues)
+            else:
+                language_list = language
+
+            # 音声合成（API経由でサーバーへリクエスト）
+            tts_client.generate(
+                output_path=output_file, # SoundGeneratorの引数名に合わせる場合は output_path
+                texts=dialogues,
+                languages=language_list,
+                speakers=speakers,
+                instructs=intructs
             )
 
             print(f"Sound file generated: {output_file}")
@@ -153,14 +220,15 @@ def main():
     project = init_project()
 
     # Initialyzing the generational agent
-    generator = load_client(project)
+    text_generator = load_llm_client(project)
+    load_tts_client(project)
 
     # Load agents
-    analyst = AnalysisAgent(generator, project)
-    designer = DesignerAgent(generator, project)
-    architect = ArchitectAgent(generator, project)
-    director = DirectorAgent(generator, project)
-    writer = WriterAgent(generator, project)
+    analyst = AnalysisAgent(text_generator, project)
+    designer = DesignerAgent(text_generator, project)
+    architect = ArchitectAgent(text_generator, project)
+    director = DirectorAgent(text_generator, project)
+    writer = WriterAgent(text_generator, project)
 
     # Show the time for initializing
     previous_time = watcher(start_time, start_time)
@@ -173,8 +241,8 @@ def main():
     print("Analyzing region data from:", project.gis_data)
     analyst.analyze_region(spot_data)
 
-    print("Reviewing the region summary...")
-    director.review_region_summary(analyst)
+    # print("Reviewing the region summary...")
+    # director.review_region_summary(analyst)
 
     # Show the time for analyzing
     previous_time = watcher(start_time, previous_time)
@@ -263,35 +331,35 @@ def main():
     # Show the time for designing the plot
     previous_time = watcher(start_time, previous_time)  
 
-    # print("--- [06] Define the scene settings ---")
-    # director.plotDesign = plot_design
-    # director.protagonist = protagonist
-    # director.duotagonist = duotagonist
+    print("--- [06] Define the scene settings ---")
+    director.plotDesign = plot_design
+    director.protagonist = protagonist
+    director.duotagonist = duotagonist
 
-    # scenes = director.setup_scenes(spot_data)
+    scenes = director.setup_scenes(spot_data)
 
-    # # 進行状況の表示
-    # previous_time = watcher(start_time, previous_time)
+    # 進行状況の表示
+    previous_time = watcher(start_time, previous_time)
 
-    # print("--- [07] Write the scenario ---")
-    # writer.protagonist = protagonist
-    # writer.duotagonist = duotagonist
-    # writer.scenes = scenes
+    print("--- [07] Write the scenario ---")
+    writer.protagonist = protagonist
+    writer.duotagonist = duotagonist
+    writer.scenes = scenes
 
-    # writer.write_scenarios(spot_data)
+    writer.write_scenarios(spot_data)
 
-    # # Show the time for writing the scenario
-    # previous_time = watcher(start_time, previous_time)
+    # Show the time for writing the scenario
+    previous_time = watcher(start_time, previous_time)
 
-    # print("--- [08] Write the scripts ---")
-    # writer.write_scripts()
+    print("--- [08] Write the scripts ---")
+    writer.write_scripts()
 
-    # previous_time = watcher(start_time, previous_time)
+    previous_time = watcher(start_time, previous_time)
 
-    # print("--- [09] Generate sound drama ---")
-    # generate_sound_drama(project, writer, protagonist, duotagonist)
+    print("--- [09] Generate sound drama ---")
+    generate_sound_drama(project, writer, protagonist, duotagonist, language="japanese")
 
-    # watcher(start_time, previous_time)
+    watcher(start_time, previous_time)
 
 if __name__ == "__main__":
     main()
