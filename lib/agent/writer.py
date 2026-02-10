@@ -123,7 +123,11 @@ class WriterAgent(BaseAgent):
         
         if response.status == "ready" and response.result:
             script_file = self.project.script_dir / f"{scenario.scene_id}_script.json"
-            response.result.save_json(script_file)
-            return response.result
+            script = response.result
+            script.scene_id = scenario.scene_id
+            script.title = scenario.title
+            script.character_count = scenario.character_count
+            script.save_json(script_file)
+            return script
         else:
             raise ValueError(f"Failed to create script for Scene {scenario.scene_id}: {response.message}")

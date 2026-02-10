@@ -43,7 +43,6 @@
   "status": "ready / error",
   "message": "情報不足時の警告、または準備完了メッセージ",
   "result": {
-    "title": "シーンタイトル",
     "body": [
       {
         "character": "キャラクター名",
