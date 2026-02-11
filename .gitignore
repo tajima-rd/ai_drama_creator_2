@@ -13,6 +13,8 @@ qwen3-tts/
 # === Secret Configuration ===
 # 機密情報を含む設定ファイル
 configure/secret/*
+!configure/secret/.gitkeep
+
 configure/system/*.env
 configure/system/*.json
 
