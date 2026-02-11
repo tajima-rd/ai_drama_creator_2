@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from enum import Enum
 
 class PromptType(Enum):
@@ -25,7 +25,41 @@ class PromptType(Enum):
     REVIEW_REGION_SUMMARY = "review_region_summary.txt"
     
 
-class PromptUtils:
+class PromptLoader:
+    def __init__(
+            self, 
+            role: Optional[List[str]] = None, 
+            context: Optional[List[str]] = None, 
+            task: Optional[List[str]] = None, 
+            constraints: Optional[List[str]] = None,
+            input: Optional[List[str]] = None,
+            output: Any = None
+        ):
+
+        self.roles = role
+        self.contexts = context
+        self.tasks = task
+        self.constraints = constraints
+        self.inputs = input
+        self.output = output
+    
+    def generate_prompt(self) -> str:
+        prompt = ""
+        if self.roles:
+            prompt += f"Roles: {', '.join(self.roles)}\n"
+        if self.contexts:
+            prompt += f"Contexts: {', '.join(self.contexts)}\n"
+        if self.tasks:
+            prompt += f"Tasks: {', '.join(self.tasks)}\n"
+        if self.constraints:
+            prompt += f"Constraints: {', '.join(self.constraints)}\n"
+        if self.inputs:
+            prompt += f"Inputs: {', '.join(self.inputs)}\n"
+        if self.output is not None:
+            prompt += f"Output: {self.output}\n"
+
+        return prompt
+
     @staticmethod
     def get_path(base_dir: Path, prompt_type: PromptType) -> Path:
         return base_dir / prompt_type.value
@@ -38,10 +72,10 @@ class PromptUtils:
         if not prompt_path.exists():
             raise FileNotFoundError(f"プロンプトファイルが見つかりません: {prompt_path}")
             
-        content = prompt_path.read_text(encoding="utf-8")
+        content = prompt_path.read_text(encoding = "utf-8")
         
         # 変数置換 (例: {{variable_name}} を置換)
-        return PromptUtils.format_prompt(content, variables)
+        return PromptLoader.format_prompt(content, variables)
 
     @staticmethod
     def format_prompt(content: str, variables: Dict[str, Any]) -> str:

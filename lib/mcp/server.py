@@ -161,7 +161,7 @@ def generate_speech(request: SpeechGenerateRequest):
         
         # 受信した辞書リストからCharacterオブジェクトのリストを復元
         # voice属性はEnumのメンバー名(文字列)として渡されることを想定
-        characters = []
+        characters = None
         for char_data in request.characters:
             # Voice Enumから対応するメンバーを取得
             char_data['voice'] = Voice[char_data['voice']]

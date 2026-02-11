@@ -12,7 +12,7 @@ from lib.schema.script import Script
 from .base_agent import BaseAgent
 from ..schema.agenda import Agenda
 from ..schema.character import CharacterResponse, Character
-from ..utils.propmpt_utils import PromptType, PromptUtils
+from ..utils.propmpt_utils import PromptType, PromptLoader
 from ..core.project import Project
 
 class VoiceBase(Enum):
@@ -66,6 +66,50 @@ class GeminiVoice(VoiceBase):
     ZEPHYR = ("Zephyr", "Bright", "F")
     ZUBENELGENUBI = ("Zubenelgenubi", "Casual", "M")
 
+class GcpVoice(VoiceBase):
+    # Enumメンバー名 = (API名, 特徴, 性別)
+    Achernar = ("ja-JP-Chirp3-HD-Achernar", "Soft", "F")
+    Achird = ("ja-JP-Chirp3-HD-Achird", "Friendly", "M")
+    Algenib = ("ja-JP-Chirp3-HD-Algenib", "Gravelly", "M")
+    Algieba = ("ja-JP-Chirp3-HD-Algieba", "Smooth", "M")
+    Alnilam = ("ja-JP-Chirp3-HD-Alnilam", "Firm", "M")
+    Aoede = ("ja-JP-Chirp3-HD-Aoede", "Breezy", "F")
+    Autonoe = ("ja-JP-Chirp3-HD-Autonoe", "Bright", "F")
+    Callirrhoe = ("ja-JP-Chirp3-HD-Callirrhoe", "Easy-going", "F")
+    Charon = ("ja-JP-Chirp3-HD-Charon", "Informative", "M")
+    Despina = ("ja-JP-Chirp3-HD-Despina", "Smooth", "F")
+    Enceladus = ("ja-JP-Chirp3-HD-Enceladus", "Breathy", "M")
+    Erinome = ("ja-JP-Chirp3-HD-Erinome", "Clear", "F")
+    Fenrir = ("ja-JP-Chirp3-HD-Fenrir", "Excitable", "M")
+    Gacrux = ("ja-JP-Chirp3-HD-Gacrux", "Mature", "F")
+    Iapetus = ("ja-JP-Chirp3-HD-Iapetus", "Clear", "M")
+    Kore = ("ja-JP-Chirp3-HD-Kore", "Firm", "F")
+    Laomedeia = ("ja-JP-Chirp3-HD-Laomedeia", "Upbeat", "F")
+    Leda = ("ja-JP-Chirp3-HD-Leda", "Youthful", "F")
+    Orus = ("ja-JP-Chirp3-HD-Orus", "Firm", "M")
+    Puck = ("ja-JP-Chirp3-HD-Puck", "Upbeat", "M")
+    Pulcherrima = ("ja-JP-Chirp3-HD-Pulcherrima", "Forward", "F")
+    Rasalgethi = ("ja-JP-Chirp3-HD-Rasalgethi", "Informative", "M")
+    Sadachbia = ("ja-JP-Chirp3-HD-Sadachbia", "Lively", "M")
+    Sadaltager = ("ja-JP-Chirp3-HD-Sadaltager", "Knowledgeable", "M")
+    Schedar = ("ja-JP-Chirp3-HD-Schedar", "Even", "M")
+    Sulafat = ("ja-JP-Chirp3-HD-Sulafat", "Warm", "F")
+    Umbriel = ("ja-JP-Chirp3-HD-Umbriel", "Easy-going", "M")
+    Vindemiatrix = ("ja-JP-Chirp3-HD-Vindemiatrix", "Gentle", "F")
+    Zephyr = ("ja-JP-Chirp3-HD-Zephyr", "Bright", "F")
+    Zubenelgenubi = ("ja-JP-Chirp3-HD-Zubenelgenubi", "Casual", "M")
+    Neural2-B = ("ja-JP-Neural2-B", "No Information", "F")
+    Neural2-C = ("ja-JP-Neural2-C", "No Information", "M")
+    Neural2-D = ("ja-JP-Neural2-D", "No Information", "M")
+    Standard-A = ("ja-JP-Standard-A", "No Information", "F")
+    Standard-B = ("ja-JP-Standard-B", "No Information", "F")
+    Standard-C = ("ja-JP-Standard-C", "No Information", "M")
+    Standard-D = ("ja-JP-Standard-D", "No Information", "M")
+    Wavenet-A = ("ja-JP-Wavenet-A", "No Information", "F")
+    Wavenet-B = ("ja-JP-Wavenet-B", "No Information", "F")
+    Wavenet-C = ("ja-JP-Wavenet-C", "No Information", "M")
+    Wavenet-D = ("ja-JP-Wavenet-D", "No Information", "M")
+
 class QwenVoice(VoiceBase):
     # ここにQwen3-TTS固有のボイスを定義
     VIVIAN = ("Vivian", "ハイテンション系ボイス。日本語には不向き。", "F")
@@ -103,9 +147,9 @@ class ActorAgent(BaseAgent):
             base_name = str(script.scene_id) + "_" + script.title
             output_file = self.project.drama_dir / f"{base_name}.wav"
             if not os.path.exists(output_file):
-                monologues = []
-                speakers = []
-                intructs = []
+                monologues = None
+                speakers = None
+                intructs = None
                 
                 for monologue in script.body:
                     monologues.append(monologue.text)
@@ -152,9 +196,9 @@ class ActorAgent(BaseAgent):
 
             if not os.path.exists(output_file):
                 # スクリプトデータの抽出
-                monologues = []
-                speakers = []
-                intructs = []
+                monologues = None
+                speakers = None
+                intructs = None
                 for monologue in script.body:
                     monologues.append(monologue.text)
                     intructs.append(monologue.instruct)
@@ -214,9 +258,9 @@ class DialogueAgent(BaseAgent):
             base_name = str(script.scene_id) + "_" + script.title
             output_file = self.project.drama_dir / f"{base_name}.wav"
             if not os.path.exists(output_file):
-                dialogues = []
-                speakers = []
-                intructs = []
+                dialogues = None
+                speakers = None
+                intructs = None
                 
                 for dialogue in script.body:
                     dialogues.append(dialogue.text)
@@ -269,9 +313,9 @@ class DialogueAgent(BaseAgent):
 
             if not os.path.exists(output_file):
                 # スクリプトデータの抽出
-                dialogues = []
-                speakers = []
-                intructs = []
+                dialogues = None
+                speakers = None
+                intructs = None
                 for dialogue in script.body:
                     dialogues.append(dialogue.text)
                     intructs.append(dialogue.instruct)

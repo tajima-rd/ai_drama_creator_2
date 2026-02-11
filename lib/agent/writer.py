@@ -8,7 +8,7 @@ from ..schema.scene import SceneDesign
 from ..schema.character import Character
 from ..schema.script import ScriptResponse, Script
 from ..schema.scenario import ScenarioResponse, Scenario
-from ..utils.propmpt_utils import PromptType, PromptUtils
+from ..utils.propmpt_utils import PromptType, PromptLoader
 from ..core.project import Project
 
 class WriterAgent(BaseAgent):
@@ -40,7 +40,7 @@ class WriterAgent(BaseAgent):
             print(f"Warning: Rubi map file not found at {self.project.rubi_map}")
 
     def write_scenarios(self, spot_data: gpd.GeoDataFrame) -> list[Scenario]:
-        scenarios = []
+        scenarios = None
 
         for scene in self.scenes:
             scene_id = scene.scene_id
@@ -57,7 +57,7 @@ class WriterAgent(BaseAgent):
         return scenarios
 
     def write_scripts(self):
-        scripts = []
+        scripts = None
 
         for scenario in self.scenarios:
             scene_id = scenario.scene_id
@@ -77,7 +77,7 @@ class WriterAgent(BaseAgent):
         return self.scripts
 
     def _create_scenario(self, scene: SceneDesign) -> Scenario:
-        prompt_path = PromptUtils.get_path(self.project.prompt_dir, PromptType.CREATE_SCENARIO)
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir, PromptType.CREATE_SCENARIO)
 
         variables = {
             "title": scene.title,
@@ -107,7 +107,7 @@ class WriterAgent(BaseAgent):
             raise ValueError(f"Failed to create scenario for Scene {scene.scene_id}: {response.message}")
 
     def _create_script(self, scenario: Scenario) -> Script:
-        prompt_path = PromptUtils.get_path(self.project.prompt_dir, PromptType.CREATE_SCRIPT)
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir, PromptType.CREATE_SCRIPT)
 
         # 修正：入力変数を scenario_text 主体に絞り込む
         variables = {

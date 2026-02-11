@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Type, TypeVar, Dict, Any, Optional
 
 from ..genai.generators import SoundGenerator, TextGenerator
-from ..utils.propmpt_utils import PromptUtils
+from ..utils.propmpt_utils import PromptLoader
 
 T = TypeVar("T", bound=pydantic.BaseModel)
 
@@ -53,7 +53,7 @@ class BaseAgent:
         プロンプトの読み込み、変数注入、生成、バリデーションを一括で行う。
         エラーが発生した場合は最大 max_retries 回まで再試行。
         """
-        final_prompt = PromptUtils.load_and_format(prompt_path, variables)
+        final_prompt = PromptLoader.load_and_format(prompt_path, variables)
 
         for attempt in range(max_retries):
             try:

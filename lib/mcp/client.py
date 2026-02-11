@@ -60,7 +60,7 @@ class MCPClientManager:
 
     def configure(self, configs: List[Any]) -> bool:
         # 1. 引数の型をチェックし、辞書のリスト (configs_data) に変換
-        configs_data = []
+        configs_data = None
         if not configs:
             print("設定データが空です。")
             return False
@@ -157,7 +157,7 @@ class MCPClientManager:
         speech_endpoint = f"{self.server_url}/generate_speech"
         
         # Characterオブジェクトのリストを、JSONで送信可能な辞書のリストに変換
-        char_list_dict = []
+        char_list_dict = None
         for char in characters:
             char_dict = char.__dict__.copy() # オブジェクトを辞書に
             # voice属性がEnumインスタンスの場合、その名前(文字列)に変換

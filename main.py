@@ -262,7 +262,8 @@ def main():
     previous_time = watcher(start_time, previous_time)
 
     print("--- [09] Generate sound drama ---")
-    generate_sound_drama(project, writer, protagonist, duotagonist, language="japanese")
+    
+    # generate_sound_drama(project, writer, protagonist, duotagonist, language="japanese")
 
     watcher(start_time, previous_time)
 

@@ -2,7 +2,7 @@ import os
 from google.cloud import texttospeech
 
 # --- 設定：ダウンロードしたJSONファイルのパスを指定 ---
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./configure/system/gcp_tts_credentials.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./configure/secret/gcp_tts_credentials.json"
 
 def generate_voice(text, output_file="output.mp3"):
     # クライアントの初期化
@@ -14,7 +14,7 @@ def generate_voice(text, output_file="output.mp3"):
     # 声の設定（WaveNet A: 落ち着いた女性の声 / 無料枠 400万文字）
     voice = texttospeech.VoiceSelectionParams(
         language_code="ja-JP",
-        name="ja-JP-Wavenet-A"
+        name="ja-JP-Chirp3-HD-Schedar"
     )
 
     # 音声ファイルの設定（MP3）

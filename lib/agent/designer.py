@@ -7,7 +7,7 @@ from ..schema.agenda import AgendaResponse, Agenda
 from ..schema.character import Character
 from ..schema.plot import PlotResponse, PlotDesign
 from ..schema.geography import RegionSummary
-from ..utils.propmpt_utils import PromptType, PromptUtils
+from ..utils.propmpt_utils import PromptType, PromptLoader
 from ..core.project import Project
 
 class DesignerAgent(BaseAgent):
@@ -62,7 +62,7 @@ class DesignerAgent(BaseAgent):
 
     def _create_agenda(self) -> Agenda:
         # パスの解決
-        prompt_path = PromptUtils.get_path(self.project.prompt_dir,  PromptType.CREATE_AGENDA)
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir,  PromptType.CREATE_AGENDA)
 
         variables = {
             "background": self.report.background,
@@ -81,7 +81,7 @@ class DesignerAgent(BaseAgent):
             raise ValueError(f"AIからの企画構成案の生成に失敗しました: {response.message}")
 
     def _create_plot(self) -> PlotDesign:
-        prompt_path = PromptUtils.get_path(self.project.prompt_dir,  PromptType.CREATE_PLOT)
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir,  PromptType.CREATE_PLOT)
 
         variables = {
             "planning": self.agenda.planning,

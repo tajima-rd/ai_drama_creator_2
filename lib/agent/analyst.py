@@ -4,7 +4,7 @@ import geopandas as gpd
 from pathlib import Path
 
 from .base_agent import BaseAgent
-from ..utils.propmpt_utils import PromptType, PromptUtils
+from ..utils.propmpt_utils import PromptType, PromptLoader
 from ..schema.report import ReportResponse, Report
 from ..schema.geography import RegionSummaryResponse, RegionSummary
 from ..core.project import Project
@@ -65,7 +65,7 @@ class AnalysisAgent(BaseAgent):
 
     def _create_report(self, current_situation: dict) -> Report:
         # パスの解決
-        prompt_path = PromptUtils.get_path(self.project.prompt_dir, PromptType.CREATE_REPORT)
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir, PromptType.CREATE_REPORT)
 
         # 変数の組み立て
         variables = {
@@ -87,7 +87,7 @@ class AnalysisAgent(BaseAgent):
             raise ValueError(f"AIからの分析レポート生成に失敗しました: {response.message}")
     
     def _create_region_summary(self, regional_info: str) -> RegionSummary:
-        prompt_path = PromptUtils.get_path(self.project.prompt_dir, PromptType.CREATE_REGION_SUMMARY)
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir, PromptType.CREATE_REGION_SUMMARY)
 
         variables = {
             "regional_info": regional_info,

@@ -1,12 +1,8 @@
-# --- Torch 関連: 特定の ROCm レポジトリから個別取得 ---
-torch==2.10.0+rocm7.1 --index-url https://download.pytorch.org/whl/rocm7.1
-torchvision==0.25.0+rocm7.1 --index-url https://download.pytorch.org/whl/rocm7.1
-torchaudio==2.10.0+rocm7.1 --index-url https://download.pytorch.org/whl/rocm7.1
-
-# --- Triton: ROCm 版を優先 ---
-triton-rocm==3.6.0
-
-# --- 基本ライブラリ ---
+torch==2.10.0
+torchvision==0.25.0
+torchaudio==2.10.0
+triton
+google-cloud-texttospeech
 accelerate==1.12.0
 aiofiles==24.1.0
 annotated-types==0.7.0

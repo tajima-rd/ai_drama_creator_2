@@ -4,7 +4,7 @@ from pathlib import Path
 from .base_agent import BaseAgent
 from ..schema.agenda import Agenda
 from ..schema.character import CharacterResponse, Character
-from ..utils.propmpt_utils import PromptType, PromptUtils
+from ..utils.propmpt_utils import PromptType, PromptLoader
 from ..core.project import Project
 
 class ArchitectAgent(BaseAgent):
@@ -31,7 +31,7 @@ class ArchitectAgent(BaseAgent):
     
     def _create_profile(self, data_dict: dict) -> Character:
         # パスの解決
-        prompt_path = PromptUtils.get_path(self.project.prompt_dir, PromptType.CREATE_CHARACTER)
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir, PromptType.CREATE_CHARACTER)
 
         variables = {
             "agenda": self.agenda.concept,

@@ -10,7 +10,7 @@ from typing import List, Dict, Optional
 # ==============================================================================
 class ApiKeyManager:
     def __init__(self):
-        self.clients = []
+        self.clients = None
         self.current_index = 0
         print("ApiKeyManagerが初期化されました。クライアントを追加してください。")
 

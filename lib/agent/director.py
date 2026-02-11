@@ -13,7 +13,7 @@ from ..schema.plot import PlotDesign
 from ..schema.character import Character
 from ..schema.scene import SceneDesignResponse, SceneDesign
 
-from ..utils.propmpt_utils import PromptType, PromptUtils
+from ..utils.propmpt_utils import PromptType, PromptLoader
 from ..core.project import Project
 
 
@@ -25,7 +25,7 @@ class DirectorAgent(BaseAgent):
             plotDesign: PlotDesign = None, 
             protagonist: Character = None, 
             duotagonist: Character = None,
-            scenes: list[SceneDesign] = []
+            scenes: list[SceneDesign] = None
         ):
         super().__init__(generator)
         self.project = project
@@ -44,7 +44,7 @@ class DirectorAgent(BaseAgent):
     
     def review_region_summary(self, analyst: AnalysisAgent) -> str:
         prompt_type = PromptType.REVIEW_REGION_SUMMARY
-        prompt_path = PromptUtils.get_path(self.project.prompt_dir, prompt_type)
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir, prompt_type)
 
         variables = {
             "title": analyst.region_summary.title,
@@ -60,7 +60,7 @@ class DirectorAgent(BaseAgent):
             raise ValueError(f"AIからの地域概要レビューに失敗しました: {response.message}") 
         
     def setup_scenes(self, spot_data: gpd.GeoDataFrame):
-        self.scenes = []
+        self.scenes = None
 
         for _, row in spot_data.iterrows():
             scene = SceneDesign(
@@ -101,7 +101,7 @@ class DirectorAgent(BaseAgent):
         return self.scenes
 
     def _create_scene_plot(self, spot) -> str:
-        prompt_path = PromptUtils.get_path(self.project.prompt_dir, PromptType.CREATE_SCENE_PLOT)
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir, PromptType.CREATE_SCENE_PLOT)
 
         variables = {
             "num_scenes": len(self.scenes),
@@ -123,7 +123,7 @@ class DirectorAgent(BaseAgent):
 
     def _create_scene(self, spot) -> SceneDesign:
         # パスの解決
-        prompt_path = PromptUtils.get_path(self.project.prompt_dir,  PromptType.CREATE_SCENE)
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir,  PromptType.CREATE_SCENE)
 
         variables = {
             "facts": spot.facts,
