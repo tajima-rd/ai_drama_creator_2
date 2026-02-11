@@ -10,7 +10,7 @@
     "llm_api": "http://172.30.65.101:8080/chat/completions",
     "tts_client": "Qwen3TTS",
     "tts_model": "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
-    "tts_api": "http://172.30.65.101:8000/generate"
+    "tts_api": "http://172.30.65.101:8000/tts"
   }
 }
 

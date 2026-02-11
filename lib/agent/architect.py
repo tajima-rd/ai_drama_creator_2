@@ -44,7 +44,7 @@ class ArchitectAgent(BaseAgent):
             "personality": data_dict["personality"],
             "cognitive_bias": data_dict["cognitive_bias"],
             "value_system": data_dict["value_system"],
-            "dialogue_example": data_dict["dialogue_example"],
+            "text_example": data_dict["text_example"],
             "age": data_dict["age"],
             "speaking_style": data_dict["speaking_style"],
             "catchphrase": data_dict["catchphrase"],

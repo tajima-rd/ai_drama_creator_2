@@ -11,17 +11,8 @@ from enum import Enum
 # core / schema / genai
 from lib.core.project import Project
 from lib.genai.api_client import GeminiApiClient, ApiKeyManager, LlamaCppApiClient, Qwen3TTSApiClient
-from lib.genai.generators import WriteConfig, GeminiTextGenerator, LlamaCppTextGenerator
-
-from lib.genai.qwen_tts_local import Qwen3TTS, ATTENTION_TYPE
-
-from lib.schema.report import Report
-from lib.schema.geography import RegionSummary
-from lib.schema.agenda import Agenda
-from lib.schema.character import Character, VoiceBase
-from lib.schema.plot import PlotDesign
-from lib.schema.scene import SceneDesign
-from lib.schema.script import Script
+from lib.genai.generators import QwenSoundGenerator, WriteConfig, GeminiTextGenerator, LlamaCppTextGenerator
+from lib.schema.character import Character
 
 # agents
 from lib.agent.analyst import AnalysisAgent
@@ -29,6 +20,7 @@ from lib.agent.designer import DesignerAgent
 from lib.agent.architect import ArchitectAgent
 from lib.agent.director import DirectorAgent
 from lib.agent.writer import WriterAgent
+from lib.agent.actor import ActorAgent, Dialogue
 
 api_key = ""
 config_path = Path("/home/yufujimoto/Git/ai_drama_creator_2/project/project.json") 
@@ -80,6 +72,10 @@ def load_llm_client(project: Project):
     # (LlamaCppなどローカルAPIの場合はダミーでも可)
     gemini_key = os.getenv("GENAI_API_KEY")
     llama_key = os.getenv("LLAMA_API_KEY", "dummy") # デフォルト値を設定可能
+    generator = None
+
+    # 3. ジェネレーターの初期化
+    write_config = WriteConfig(temperature=0.7) 
 
     # 2. クライアントの切り替え
     if project.llm_client == "LlamaCpp":
@@ -88,26 +84,21 @@ def load_llm_client(project: Project):
             model_name=project.llm_model, 
             api_url=project.llm_api
         )
+        generator = LlamaCppTextGenerator(api_client=client, write_config=write_config)
     elif project.llm_client == "Gemini":
         client = GeminiApiClient(
             api_key=gemini_key, 
             model_name=project.llm_model
         )
+        generator = GeminiTextGenerator(api_client=client, write_config=write_config)
     else:
         raise ValueError(f"未対応のLLMクライアントです: {project.llm_client}")
-
-    # 3. ジェネレーターの初期化
-    write_config = WriteConfig(temperature=0.7) 
-    generator = LlamaCppTextGenerator(api_client=client, write_config=write_config)
     
     return generator
 
 def load_tts_client(project: Project):
-    """
-    プロジェクト設定に基づいて、適切なTTSクライアントを初期化する
-    """
-    # 1. APIキーなどの機密情報は環境変数から取得
     tts_key = os.getenv("TTS_API_KEY", "dummy") # デフォルト値を設定可能
+    generator = None
 
     # 2. クライアントの切り替え
     if project.tts_client == "Qwen3TTS":
@@ -116,101 +107,13 @@ def load_tts_client(project: Project):
             api_url=project.tts_api,
             api_key=tts_key
         )
+
+        generator = QwenSoundGenerator(api_client=client)
     else:
         raise ValueError(f"未対応のTTSクライアントです: {project.tts_client}")
+        return None
 
-    return client
-
-def generate_sound_drama_locally(project:Project, writer: WriterAgent, protagonist:Character, duotagonist:Character, language: str="japanese"):
-    # モデル初期化
-    tts_model = Qwen3TTS(
-        model_name="Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
-        device="cuda:0",
-        attention_type=ATTENTION_TYPE.SDPA
-    )
-
-    # 各ファイルを処理
-    for script in writer.scripts:
-        # 出力ファイル名を決定（例：1_audio.wav）
-        base_name = script.scene_id + script.title
-        output_file = project.drama_dir / f"{base_name}.wav"
-
-        if not os.path.exists(output_file):
-            # スクリプトデータの抽出
-            dialogues = []
-            speakers = []
-            intructs = []
-            for dialogue in script.body:
-                dialogues.append(dialogue.dialogue)
-                intructs.append(dialogue.instruct)
-
-                if dialogue.character == protagonist.profile.name:
-                    speakers.append("aiden")
-                elif dialogue.character == duotagonist.profile.name:
-                    speakers.append("ono_anna")
-                else:
-                    speakers.append("aiden")
-                
-                if isinstance(language, str):
-                    language_list = [language] * len(script.body)
-                else:
-                    language_list = language
-
-            # 音声合成
-            tts_model.generate(
-                file_name=output_file,
-                text=dialogues,
-                language=language_list,
-                speaker=speakers,
-                instruct=intructs
-            )
-
-            print(f"Sound file generated: {output_file}")
-        else:
-            print(f"Sound file already exists: {output_file}")
-
-def generate_sound_drama(project:Project, writer: WriterAgent, protagonist:Character, duotagonist:Character, language: str="japanese"):
-    # TTSクライアントの初期化（QwenSoundGenerator または Qwen3TTS_RemoteProxy）
-    tts_client = load_tts_client(project)
-
-    for script in writer.scripts:
-        base_name = str(script.scene_id) + "_" + script.title
-        output_file = project.drama_dir / f"{base_name}.wav"
-
-        if not os.path.exists(output_file):
-            dialogues = []
-            speakers = []
-            intructs = []
-            
-            for dialogue in script.body:
-                dialogues.append(dialogue.dialogue)
-                intructs.append(dialogue.instruct)
-
-                if dialogue.character == protagonist.profile.name:
-                    speakers.append("aiden")
-                elif dialogue.character == duotagonist.profile.name:
-                    speakers.append("ono_anna")
-                else:
-                    speakers.append("aiden")
-            
-            # --- 言語リストの作成は、全てのセリフ（dialogues）を溜めた後に実行 ---
-            if isinstance(language, str):
-                language_list = [language] * len(dialogues)
-            else:
-                language_list = language
-
-            # 音声合成（API経由でサーバーへリクエスト）
-            tts_client.generate(
-                output_path=output_file, # SoundGeneratorの引数名に合わせる場合は output_path
-                texts=dialogues,
-                languages=language_list,
-                speakers=speakers,
-                instructs=intructs
-            )
-
-            print(f"Sound file generated: {output_file}")
-        else:
-            print(f"Sound file already exists: {output_file}")
+    return generator
 
 def main():
     start_time = datetime.now()
@@ -221,7 +124,7 @@ def main():
 
     # Initialyzing the generational agent
     text_generator = load_llm_client(project)
-    load_tts_client(project)
+    voice_generator = load_tts_client(project)
 
     # Load agents
     analyst = AnalysisAgent(text_generator, project)
@@ -229,6 +132,8 @@ def main():
     architect = ArchitectAgent(text_generator, project)
     director = DirectorAgent(text_generator, project)
     writer = WriterAgent(text_generator, project)
+    actor = ActorAgent(voice_generator, project)
+    dialogue = Dialogue(voice_generator, project)
 
     # Show the time for initializing
     previous_time = watcher(start_time, start_time)
@@ -280,7 +185,7 @@ def main():
         "personality": "真面目だけれど、アホで自尊心が高い。好奇心が非常に高い。思い込みが激しい。勝手な想像で的外れなことしか言わない。", 
         "cognitive_bias": "地球上で見かけるあらゆるものを、地球人による宇宙侵略の企てだと勘ぐってしまう。地球のことを全く知らないので、「城跡」を「地球人の宇宙侵略基地」と言ったり、食べ物を食べ物以外のなにかと勘違いする。", 
         "value_system": "とにかく、好奇心旺盛で新しいものや、物珍しいものに夢中になる。偉そうではあるが、比較的簡単に納得する。", 
-        "dialogue_example": "われは、宇宙で一番高貴な天才である！！わはははは！", 
+        "text_example": "われは、宇宙で一番高貴な天才である！！わはははは！", 
         "background": "銀河の彼方から飛来した宇宙人。乗っていた宇宙船が有子山に墜落し、調査のために出石の市街に降りてきた。賢いようには見えない。", 
         "bond": "ふがふが",
         "gender": "男",
@@ -304,7 +209,7 @@ def main():
         "personality": "知的で客観的な常識人。いつも冷静に判断することを心がけており、憶測で行動することを避ける。", 
         "cognitive_bias": "地球のことを全く知らないので、あらゆるものを手元のAI端末で検索あるいは分析し、正しい知識を得る。", 
         "value_system": "保守的で得体の知れないものには近づかない。自分の故郷の星が宇宙で一番だと考えている。", 
-        "dialogue_example": "「また勝手なことを言って！」, 「ちょっと、待って！ちゃんと調べるから！」", 
+        "text_example": "「また勝手なことを言って！」, 「ちょっと、待って！ちゃんと調べるから！」", 
         "background": "銀河の彼方から飛来したもう一人の宇宙人。相方と一緒に出石の市街に降りてきた。あまり、地球に興味は無いが、相方の行動や発言に不安を感じてついてきた。", 
         "bond": "ほげほげ",
         "gender": "女",

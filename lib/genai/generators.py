@@ -9,7 +9,8 @@ from typing import (
     Dict, 
     Union, 
     Any, 
-    Optional
+    Optional,
+    Tuple
 )
 from dataclasses import dataclass
 
@@ -132,7 +133,7 @@ class LlamaCppTextGenerator(TextGenerator):
                 self.api_client.api_url,
                 headers=self.api_client.headers,
                 data=json.dumps(payload),
-                timeout=1200
+                timeout=None
             )
             response.raise_for_status()
             response_data = response.json()
@@ -155,24 +156,28 @@ class QwenSoundGenerator(SoundGenerator):
             output_path: Path
         ) -> Optional[Path]:
 
+        def convert_to_http_params() -> List[Tuple[str, Any]]:
+            # サーバー側の引数名 (texts, languages, speakers, instructs) に合わせる
+            http_params = [('texts', t) for t in texts]
+            http_params += [('languages', l) for l in languages]
+            http_params += [('speakers', s) for s in speakers]
+            
+            if instructs:
+                http_params += [('instructs', i) for i in instructs]
+            
+            return http_params
+
         # languages が単一文字列の場合はリストに拡張
         if isinstance(languages, str):
             languages = [languages] * len(texts)
-
-        params = {
-            "text": texts,
-            "language": languages,
-            "speaker": speakers,
-            "instruct": instructs
-        }
 
         try:
             # api_client から URL を取得してリクエスト
             response = requests.get(
                 self.api_client.api_url, 
-                params=params, 
+                params=convert_to_http_params(), 
                 headers=self.api_client.headers,
-                timeout=300 # 音声合成待ち時間を考慮
+                timeout=None
             )
             
             if response.status_code == 200:

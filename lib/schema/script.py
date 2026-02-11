@@ -7,7 +7,7 @@ from .response import BaseResponse
 class Dialogue(SaveableModel):
     """1発話ごとのデータ構造"""
     character: str = Field(..., description="発話するキャラクター名")
-    dialogue: str = Field(..., description="台詞内容（ト書き・記号一切禁止）")
+    text: str = Field(..., description="台詞内容（ト書き・記号一切禁止）")
     instruct: Optional[str] = Field(None, description="話者トーンやテンポ、感情強度の指示")
 
 class Script(SaveableModel):

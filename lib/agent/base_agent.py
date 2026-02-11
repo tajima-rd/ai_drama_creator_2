@@ -11,7 +11,7 @@ from pydantic_core import ValidationError
 from pathlib import Path
 from typing import Type, TypeVar, Dict, Any, Optional
 
-from ..genai.generators import TextGenerator
+from ..genai.generators import SoundGenerator, TextGenerator
 from ..utils.propmpt_utils import PromptUtils
 
 T = TypeVar("T", bound=pydantic.BaseModel)
@@ -21,10 +21,15 @@ def sanitize_json_string(json_str: str) -> str:
     sanitized = re.sub(r'[\x00-\x1f]', '', json_str)
     return sanitized
 
+
 class BaseAgent:
-    def __init__(self, generator: TextGenerator):
-        # generators.py の TextGenerator を保持
-        self.generator = generator
+    def __init__(
+            self, 
+            text_generator: Optional[TextGenerator] = None, 
+            voice_generator: Optional[SoundGenerator] = None
+        ):
+        self.text_generator = text_generator
+        self.voice_generator = voice_generator
     
     @staticmethod
     def load_json(file_path: Path) -> Dict[str, Any]:
