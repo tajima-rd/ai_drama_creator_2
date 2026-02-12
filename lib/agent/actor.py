@@ -5,7 +5,7 @@ from pathlib import Path
 from traitlets import Enum
 
 from lib.agent.writer import WriterAgent
-from lib.genai.generators import QwenSoundGenerator, SoundGenerator
+from lib.genai.generators import GcpSoundGenerator, QwenSoundGenerator, SoundGenerator
 from lib.genai.qwen_tts_local import ATTENTION_TYPE, Qwen3TTS
 from lib.schema.script import Script
 
@@ -139,8 +139,12 @@ class ActorAgent(BaseAgent):
     def generate_monologue(self):
         if isinstance(self.generator, QwenSoundGenerator):
             self._generate_qwen_api()
+        elif isinstance(self.generator, GcpSoundGenerator):
+            self._generate_gcp_api()
         else:
             self._generate_qwen_local() 
+    def _generate_gcp_api(self):
+        pass
 
     def _generate_qwen_api(self):
         for script in self.scripts:
@@ -250,8 +254,13 @@ class DialogueAgent(BaseAgent):
     def generate_dialogues(self):
         if isinstance(self.generator, QwenSoundGenerator):
             self._generate_qwen_api()
+        elif isinstance(self.generator, GcpSoundGenerator):
+            self._generate_gcp_api()
         else:
             self._generate_qwen_local() 
+    
+    def _generate_gcp_api(self):
+        pass
 
     def _generate_qwen_api(self):
         for script in self.scripts:

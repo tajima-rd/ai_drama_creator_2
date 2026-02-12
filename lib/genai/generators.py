@@ -13,6 +13,7 @@ from typing import (
     Tuple
 )
 from dataclasses import dataclass
+from google.cloud import texttospeech
 
 from .api_client import ApiClient, Qwen3TTSApiClient
 
@@ -25,6 +26,15 @@ class WriteConfig:
 @dataclass
 class SpeechConfig:
     temperature: float = 1.0
+
+@dataclass
+class AudioConfig:
+    audioEncoding: str = "MP3"
+    speakingRate: float = 1.0   # Speaking rate/speed, in the range [0.25, 2.0]
+    pitch: float = 0.0          # Speaking pitch, in the range [-20.0, 20.0]
+    volumeGainDb: float = 0.0   # Strongly recommend not to exceed +10 (dB)
+    sampleRateHertz: int = 24000
+    effectsProfileId: List[str] = ["headphone-class-device"]
 
 class AbstractBaseGenerator(abc.ABC):
     def __init__(
@@ -191,6 +201,50 @@ class QwenSoundGenerator(SoundGenerator):
         except Exception as e:
             print(f"QwenSoundGenerator実行中に例外が発生しました: {e}", file=sys.stderr)
             return None
+
+class GcpSoundGenerator(SoundGenerator):
+    def generate(
+            text, 
+            language: str = "japanese",
+            speaker: str = "ja-JP-Chirp3-HD-Schedar",
+            audio_config: AudioConfig = None,
+            output_path="output.mp3"
+        ):
+
+        # クライアントの初期化
+        client = texttospeech.TextToSpeechClient()
+
+        # 読み上げテキストの設定
+        synthesis_input = texttospeech.SynthesisInput(text=text)
+
+        # 声の設定（WaveNet A: 落ち着いた女性の声 / 無料枠 400万文字）
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="ja-JP",
+            name=speaker
+        )
+
+        # 音声ファイルの設定（MP3）
+        voice_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.MP3,
+            speaking_rate=audio_config.speakingRate,
+            pitch=audio_config.pitch,
+            volume_gain_db=audio_config.volumeGainDb,
+            sample_rate_hertz=audio_config.sampleRateHertz,
+            effects_profile_id=audio_config.effectsProfileId
+        )
+
+        # 音声合成の実行
+        response = client.synthesize_speech(
+            input=synthesis_input, 
+            voice=voice, 
+            audio_config=voice_config
+        )
+
+        # ファイルに保存
+        with open(output_path, "wb") as out:
+            out.write(response.audio_content)
+            print(f"成功！音声ファイルを保存しました: {output_path}")
+
 
 
 # ==============================================================================

@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import sys
 import json
 import requests
@@ -59,7 +61,12 @@ class ApiKeyManager:
 class ApiClient:
     client_type = "base"
 
-    def __init__(self, api_key: str, model_name: str):
+    def __init__(
+            self, 
+            api_key: Optional[str] = None, 
+            model_name: Optional[str] = None
+
+        ):
         self.api_key = api_key
         self.model_name = model_name
 
@@ -98,6 +105,23 @@ class Qwen3TTSApiClient(ApiClient):
             "Authorization": f"Bearer {self.api_key}"
         }
         print(f"Qwen3TTS ApiClientがモデル '{self.model_name}' (URL: {self.api_url}) 用に初期化されました。")
+
+
+class GcpTTSApiClient(ApiClient):
+    client_type = "gcp_tts"
+
+    def __init__(
+            self, 
+            api_key: Optional[str] = None, 
+            model_name: Optional[str] = "google-cloud-tts",
+            api_config_file: Optional[Path] = None
+        ):
+        super().__init__(api_key, model_name)   
+        self.api_config_file = api_config_file
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.api_config_file
+        
+        # GCPの認証は環境変数で行うため、ここでは特に処理しない
+        print(f"GcpTtsApiClientが設定ファイル '{self.api_config_file}' 用に設定されました。")
 
 # ==============================================================================
 #  Llama.cpp API クライアント
