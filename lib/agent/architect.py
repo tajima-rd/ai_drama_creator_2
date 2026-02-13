@@ -8,8 +8,8 @@ from ..utils.propmpt_utils import PromptType, PromptLoader
 from ..core.project import Project
 
 class ArchitectAgent(BaseAgent):
-    def __init__(self, generator, project: Project, agenda: Agenda=None):
-        super().__init__(generator)
+    def __init__(self, text_generator, project: Project, agenda: Agenda=None):
+        super().__init__(text_generator)
         self.project = project
         self.agenda = agenda
 

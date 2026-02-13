@@ -7,6 +7,7 @@ torchaudio==2.10.0+rocm7.1 --index-url https://download.pytorch.org/whl/rocm7.1
 triton-rocm==3.6.0
 
 # --- 基本ライブラリ ---
+traitlets
 google-cloud-texttospeech
 accelerate==1.12.0
 aiofiles==24.1.0

@@ -12,7 +12,7 @@ from typing import (
     Optional,
     Tuple
 )
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from google.cloud import texttospeech
 
 from .api_client import ApiClient, Qwen3TTSApiClient
@@ -34,7 +34,7 @@ class AudioConfig:
     pitch: float = 0.0          # Speaking pitch, in the range [-20.0, 20.0]
     volumeGainDb: float = 0.0   # Strongly recommend not to exceed +10 (dB)
     sampleRateHertz: int = 24000
-    effectsProfileId: List[str] = ["headphone-class-device"]
+    effectsProfileId: List[str] = field(default_factory=lambda: ["headphone-class-device"])
 
 class AbstractBaseGenerator(abc.ABC):
     def __init__(

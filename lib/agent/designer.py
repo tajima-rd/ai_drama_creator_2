@@ -13,7 +13,7 @@ from ..core.project import Project
 class DesignerAgent(BaseAgent):
     def __init__(
             self, 
-            generator, 
+            text_generator, 
             project: Project, 
             agenda: Agenda=None, 
             report:Report=None, 
@@ -22,7 +22,7 @@ class DesignerAgent(BaseAgent):
             region_summary: RegionSummary = None
         ):
         
-        super().__init__(generator)
+        super().__init__(text_generator)
         self.project = project
         self.report = report
         self.agenda = agenda

@@ -14,7 +14,7 @@ from ..core.project import Project
 class WriterAgent(BaseAgent):
     def __init__(
             self, 
-            generator, 
+            text_generator, 
             project: Project, 
             protagonist: Character=None, 
             deuteragonist: Character=None, 
@@ -22,7 +22,7 @@ class WriterAgent(BaseAgent):
             scenarios: list[Scenario]=[],
             scripts: list[Script]=[]
         ):
-        super().__init__(generator)
+        super().__init__(text_generator)
         self.project = project
         self.protagonist = protagonist
         self.deuteragonist = deuteragonist

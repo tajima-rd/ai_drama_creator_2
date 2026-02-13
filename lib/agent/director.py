@@ -20,14 +20,14 @@ from ..core.project import Project
 class DirectorAgent(BaseAgent):
     def __init__(
             self, 
-            generator, 
+            text_generator, 
             project: Project, 
             plotDesign: PlotDesign = None, 
             protagonist: Character = None, 
             deuteragonist: Character = None,
             scenes: list[SceneDesign] = None
         ):
-        super().__init__(generator)
+        super().__init__(text_generator)
         self.project = project
         self.plotDesign = plotDesign
         self.protagonist = protagonist
@@ -60,7 +60,7 @@ class DirectorAgent(BaseAgent):
             raise ValueError(f"AIからの地域概要レビューに失敗しました: {response.message}") 
         
     def setup_scenes(self, spot_data: gpd.GeoDataFrame):
-        self.scenes = None
+        self.scenes = []
 
         for _, row in spot_data.iterrows():
             scene = SceneDesign(

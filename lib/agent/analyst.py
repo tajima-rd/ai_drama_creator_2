@@ -12,13 +12,13 @@ from ..core.project import Project
 class AnalysisAgent(BaseAgent):
     def __init__(
             self, 
-            generator, 
+            text_generator, 
             project: Project, 
             region_summary: RegionSummary=None, 
             report: Report=None
         ):
 
-        super().__init__(generator)
+        super().__init__(text_generator)
         self.project = project
         self.region_summary = region_summary
         self.report = report

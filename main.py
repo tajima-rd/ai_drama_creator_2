@@ -20,7 +20,8 @@ from lib.agent.designer import DesignerAgent
 from lib.agent.architect import ArchitectAgent
 from lib.agent.director import DirectorAgent
 from lib.agent.writer import WriterAgent
-from lib.agent.actor import ActorAgent, Dialogue
+from lib.agent.actor import ActorAgent, DialogueAgent
+
 
 api_key = ""
 config_path = Path("/home/yufujimoto/Git/ai_drama_creator_2/project/project.json") 
@@ -133,7 +134,7 @@ def main():
     director = DirectorAgent(text_generator, project)
     writer = WriterAgent(text_generator, project)
     actor = ActorAgent(voice_generator, project)
-    dialogue = Dialogue(voice_generator, project)
+    dialogue = DialogueAgent(voice_generator, project)
 
     # Show the time for initializing
     previous_time = watcher(start_time, start_time)

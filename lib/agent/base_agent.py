@@ -58,7 +58,7 @@ class BaseAgent:
         for attempt in range(max_retries):
             try:
                 messages = [{"role": "user", "content": final_prompt}]
-                raw_json = self.generator.generate(messages)
+                raw_json = self.text_generator.generate(messages)
                 sanitized_json = sanitize_json_string(raw_json)
 
                 return response_schema.model_validate_json(sanitized_json)

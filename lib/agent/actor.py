@@ -98,17 +98,17 @@ class GcpVoice(VoiceBase):
     Vindemiatrix = ("ja-JP-Chirp3-HD-Vindemiatrix", "Gentle", "F")
     Zephyr = ("ja-JP-Chirp3-HD-Zephyr", "Bright", "F")
     Zubenelgenubi = ("ja-JP-Chirp3-HD-Zubenelgenubi", "Casual", "M")
-    Neural2-B = ("ja-JP-Neural2-B", "No Information", "F")
-    Neural2-C = ("ja-JP-Neural2-C", "No Information", "M")
-    Neural2-D = ("ja-JP-Neural2-D", "No Information", "M")
-    Standard-A = ("ja-JP-Standard-A", "No Information", "F")
-    Standard-B = ("ja-JP-Standard-B", "No Information", "F")
-    Standard-C = ("ja-JP-Standard-C", "No Information", "M")
-    Standard-D = ("ja-JP-Standard-D", "No Information", "M")
-    Wavenet-A = ("ja-JP-Wavenet-A", "No Information", "F")
-    Wavenet-B = ("ja-JP-Wavenet-B", "No Information", "F")
-    Wavenet-C = ("ja-JP-Wavenet-C", "No Information", "M")
-    Wavenet-D = ("ja-JP-Wavenet-D", "No Information", "M")
+    Neural2_B = ("ja-JP-Neural2-B", "No Information", "F")
+    Neural2_C = ("ja-JP-Neural2-C", "No Information", "M")
+    Neural2_D = ("ja-JP-Neural2-D", "No Information", "M")
+    Standard_A = ("ja-JP-Standard-A", "No Information", "F")
+    Standard_B = ("ja-JP-Standard-B", "No Information", "F")
+    Standard_C = ("ja-JP-Standard-C", "No Information", "M")
+    Standard_D = ("ja-JP-Standard-D", "No Information", "M")
+    Wavenet_A = ("ja-JP-Wavenet-A", "No Information", "F")
+    Wavenet_B = ("ja-JP-Wavenet-B", "No Information", "F")
+    Wavenet_C = ("ja-JP-Wavenet-C", "No Information", "M")
+    Wavenet_D = ("ja-JP-Wavenet-D", "No Information", "M")
 
 class QwenVoice(VoiceBase):
     # ここにQwen3-TTS固有のボイスを定義
@@ -124,13 +124,13 @@ class QwenVoice(VoiceBase):
 
 class ActorAgent(BaseAgent):
     def __init__(self, 
-                 generator: SoundGenerator, 
+                 voice_generator: SoundGenerator, 
                  project:Project,
                  character:Character=None,
                  scripts: list[Script]=[],
                  language: str="japanese"
                  ):
-        super().__init__(generator)
+        super().__init__(voice_generator)
         self.project = project
         self.character = character
         self.scripts = scripts
@@ -235,15 +235,15 @@ class ActorAgent(BaseAgent):
 class DialogueAgent(BaseAgent):
     def __init__(
             self, 
-            generator: SoundGenerator, 
+            voice_generator: SoundGenerator, 
             project:Project, 
-            agenda:Agenda,
-            scripts: list[Script], 
-            protagonist:Character, 
-            deuteragonist:Character, 
+            agenda:Agenda = None,
+            scripts: list[Script] = [], 
+            protagonist:Character = None, 
+            deuteragonist:Character = None, 
             language: str="japanese"
     ):
-        super().__init__(generator)
+        super().__init__(voice_generator)
         self.project = project
         self.agenda = agenda
         self.scripts = scripts
