@@ -19,7 +19,7 @@
 --- [06] Define the scene settings ---
 [15:01:38] Elapsed（section）: 203.46秒
 
---- [07] Write the scenario ---
+--- [07] Define the scene settings ---
 [15:05:31] Elapsed（section）: 232.92秒
 
 --- [08] Write the scripts ---
