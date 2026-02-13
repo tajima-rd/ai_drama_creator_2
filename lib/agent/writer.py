@@ -40,7 +40,7 @@ class WriterAgent(BaseAgent):
             print(f"Warning: Rubi map file not found at {self.project.rubi_map}")
 
     def write_scenarios(self, spot_data: gpd.GeoDataFrame) -> list[Scenario]:
-        scenarios = None
+        scenarios = []
 
         for scene in self.scenes:
             scene_id = scene.scene_id
