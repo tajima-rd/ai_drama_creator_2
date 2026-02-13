@@ -1,7 +1,9 @@
 import abc # 抽象基底クラスを定義するためにインポート
+import os
 import sys
 import json
 import requests
+import tempfile
 from google.genai import types # type: ignore
 from pathlib import Path
 from typing import (
@@ -204,48 +206,77 @@ class QwenSoundGenerator(SoundGenerator):
 
 class GcpSoundGenerator(SoundGenerator):
     def generate(
-            text, 
-            language: str = "japanese",
-            speaker: str = "ja-JP-Chirp3-HD-Schedar",
+            self, 
+            texts: List[Any], 
+            languages: List[str] = None,
+            speakers: List[str] = None,
             audio_config: AudioConfig = None,
-            output_path="output.mp3"
-        ):
-
+            output_path="output.mp3",
+            **kwargs 
+        ) -> Optional[Path]:
+        if audio_config is None:
+            audio_config = AudioConfig()
+        
         # クライアントの初期化
         client = texttospeech.TextToSpeechClient()
 
-        # 読み上げテキストの設定
-        synthesis_input = texttospeech.SynthesisInput(text=text)
+        if isinstance(languages, str):
+            languages = [languages] * len(texts)
+        if isinstance(speakers, str):
+            speakers = [speakers] * len(texts)
 
-        # 声の設定（WaveNet A: 落ち着いた女性の声 / 無料枠 400万文字）
-        voice = texttospeech.VoiceSelectionParams(
-            language_code="ja-JP",
-            name=speaker
-        )
+        # 最終的な音声コンテンツを格納するリスト
+        audio_chunks = []
 
-        # 音声ファイルの設定（MP3）
-        voice_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.MP3,
-            speaking_rate=audio_config.speakingRate,
-            pitch=audio_config.pitch,
-            volume_gain_db=audio_config.volumeGainDb,
-            sample_rate_hertz=audio_config.sampleRateHertz,
-            effects_profile_id=audio_config.effectsProfileId
-        )
+        try:
+            for i, text in enumerate(texts):
+                try:
+                    language = languages[i]
+                    speaker = speakers[i]
+                except IndexError as e:
+                    # 途中でリスト長が合わないことが判明した場合、詳細な情報を添えてエラーを出す
+                    raise ValueError(
+                        f"The {i}th element is missing in one of the input lists.\n"
+                        f"texts: {len(texts)}, languages: {len(languages)}, speakers: {len(speakers)}"
+                    ) from e 
 
-        # 音声合成の実行
-        response = client.synthesize_speech(
-            input=synthesis_input, 
-            voice=voice, 
-            audio_config=voice_config
-        )
+                # 読み上げテキストの設定
+                synthesis_input = texttospeech.SynthesisInput(text=text)
 
-        # ファイルに保存
-        with open(output_path, "wb") as out:
-            out.write(response.audio_content)
-            print(f"成功！音声ファイルを保存しました: {output_path}")
+                # 声の設定（WaveNet A: 落ち着いた女性の声 / 無料枠 400万文字）
+                voice = texttospeech.VoiceSelectionParams(
+                    language_code=language,
+                    name=speaker
+                )
 
+                # # 音声ファイルの設定（MP3）
+                voice_config = texttospeech.AudioConfig(
+                    audio_encoding=texttospeech.AudioEncoding.MP3,
+                    speaking_rate=audio_config.speakingRate,
+                    pitch=audio_config.pitch,
+                    volume_gain_db=audio_config.volumeGainDb,
+                    sample_rate_hertz=audio_config.sampleRateHertz,
+                    effects_profile_id=audio_config.effectsProfileId
+                )
 
+                # 音声合成の実行
+                response = client.synthesize_speech(
+                    input=synthesis_input, 
+                    voice=voice, 
+                    audio_config=voice_config
+                )
+
+                audio_chunks.append(response.audio_content)
+
+            # すべて結合したデータを最終的なパスに保存
+            with open(output_path, "wb") as out:
+                    out.write(b"".join(audio_chunks))
+            
+            return Path(output_path)
+        
+        except Exception as e:
+            print(f"Error occurred in GcpSoundGenerator: {e}", file=sys.stderr)
+            return None
 
 # ==============================================================================
 # 音声生成器クラス (抽象)
