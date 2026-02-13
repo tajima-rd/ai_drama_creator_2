@@ -4,7 +4,7 @@
 Tasks
 - 提供されたあらすじ（{{synopsis}}）、スポット情報{{facts}}、指示{{instruction}}を元に、ストーリーの各場面を詳細に定義した「シーン設計書」を指定されたJSON形式で作成してください。
 - 「シーン設計書」で紹介される場所は{{facts}}で提供されたものであり、（{{synopsis}}）はストーリーづくりのための参考情報としてください。
-- 「シーン設計書」は二人の登場人物（{{protagonist_json}}と{{duotagonist_json}}）が会話することを前提としてください。
+- 「シーン設計書」は二人の登場人物（{{protagonist_json}}と{{deuteragonist_json}}）が会話することを前提としてください。
 - シーンの概要（"scene_summary"）については、滞在時間（{{duration}}分間）×350 文字数程度で表現してください。
 
 # Constraints
@@ -28,7 +28,7 @@ Tasks
 - **シーン指示（必須）：** {{instruction}}（舞台でのストーリーの指示）
 - **あらすじ（必須）：** {{synopsis}}
 - **プロタゴニスト・プロファイル（必須）：** {{protagonist_json}}
-- **デュオタゴニスト・プロファイル（必須）：** {{duotagonist_json}}
+- **デュオタゴニスト・プロファイル（必須）：** {{deuteragonist_json}}
 - **想定される滞在時間(秒)（必須）：** {{duration}}
 
 # Output Schema (JSON)

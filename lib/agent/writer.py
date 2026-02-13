@@ -17,7 +17,7 @@ class WriterAgent(BaseAgent):
             generator, 
             project: Project, 
             protagonist: Character=None, 
-            duotagonist: Character=None, 
+            deuteragonist: Character=None, 
             scenes: list[SceneDesign]=[],
             scenarios: list[Scenario]=[],
             scripts: list[Script]=[]
@@ -25,7 +25,7 @@ class WriterAgent(BaseAgent):
         super().__init__(generator)
         self.project = project
         self.protagonist = protagonist
-        self.duotagonist = duotagonist
+        self.deuteragonist = deuteragonist
         self.scenes = scenes
         self.scenarios = scenarios
         self.scripts = scripts
@@ -86,7 +86,7 @@ class WriterAgent(BaseAgent):
             "scene_summary": scene.scene_summary,
             "estimated_duration": scene.duration,
             "protagonist_json": self.protagonist.model_dump_json(),
-            "duotagonist_json": self.duotagonist.model_dump_json(),
+            "deuteragonist_json": self.deuteragonist.model_dump_json(),
             "atmosphere": scene.atmosphere,
             "narrative_tone": scene.narrative_tone,
             "spatial_direction": scene.spatial_direction,
@@ -115,7 +115,7 @@ class WriterAgent(BaseAgent):
             "scenario_text": scenario.scenario_text,
             "character_count": scenario.character_count,
             "protagonist_json": self.protagonist.model_dump_json(),
-            "duotagonist_json": self.duotagonist.model_dump_json(),
+            "deuteragonist_json": self.deuteragonist.model_dump_json(),
             "rubi_json": self.rubi_map
         }
         

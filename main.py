@@ -199,10 +199,10 @@ def main():
     }
     protagonist = architect.define_characters(role_type_protagonist, protagonist_setting)
 
-    print("-- Duotagonist --")
-    role_type_duotagonist = "duotagonist"
-    duotagonist_settings = {
-        "role_type": role_type_duotagonist,
+    print("-- deuteragonist --")
+    role_type_deuteragonist = "deuteragonist"
+    deuteragonist_settings = {
+        "role_type": role_type_deuteragonist,
         "name": "ふがふが",
         "action": "手持ちの端末で正しい情報を検索し説明し、相方が憶測で喋っている内容を訂正し、正しく伝えるという役割を持つ。",
         "voice": "Ono_Anna",
@@ -221,7 +221,7 @@ def main():
         "extra_settings": "なし",
         "relationships": "いつも「ほげほげ」の言動に振り回される。"
     }
-    duotagonist = architect.define_characters(role_type_duotagonist, duotagonist_settings)
+    deuteragonist = architect.define_characters(role_type_deuteragonist, deuteragonist_settings)
 
     # Show the time for composing the agenda
     previous_time = watcher(start_time, previous_time)  
@@ -229,7 +229,7 @@ def main():
     print("--- [05] Design the story plot ---")
     # Run the designer agent
     designer.protagonist = protagonist
-    designer.duotagonist = duotagonist
+    designer.deuteragonist = deuteragonist
     designer.region_summary = analyst.region_summary
     plot_design = designer.design_plot()
 
@@ -239,7 +239,7 @@ def main():
     print("--- [06] Define the scene settings ---")
     director.plotDesign = plot_design
     director.protagonist = protagonist
-    director.duotagonist = duotagonist
+    director.deuteragonist = deuteragonist
 
     scenes = director.setup_scenes(spot_data)
 
@@ -248,7 +248,7 @@ def main():
 
     print("--- [07] Write the scenario ---")
     writer.protagonist = protagonist
-    writer.duotagonist = duotagonist
+    writer.deuteragonist = deuteragonist
     writer.scenes = scenes
 
     writer.write_scenarios(spot_data)
@@ -263,7 +263,7 @@ def main():
 
     print("--- [09] Generate sound drama ---")
     
-    # generate_sound_drama(project, writer, protagonist, duotagonist, language="japanese")
+    # generate_sound_drama(project, writer, protagonist, deuteragonist, language="japanese")
 
     watcher(start_time, previous_time)
 

@@ -4,7 +4,7 @@
 - 与えられた **ストーリー概念** に基づいて **キャラクター設計書** を作成します。
 
 Tasks
-- 「（protagonist」または「duotagonist）」のキャラクターを1名作成します。
+- 「（protagonist」または「deuteragonist）」のキャラクターを1名作成します。
 - 与えられた抽象的な情報を元に、固有名詞の生成も含めて、具体的な架空の設定を作成します。
 - 追加の物語設定（{{extra_settings}}）が与えられている場合には、その設定も含めて作成します。
 
@@ -55,10 +55,10 @@ Tasks
   "status": "ready / error",
   "message": "情報不足時の警告、または準備完了メッセージ",
   "result": {
-    "role_type": "（protagonist / duotagonist）",
+    "role_type": "（protagonist / deuteragonist）",
     "profile": {
       "name": "氏名：(ニックネームや不明なども可)",
-      "bond": "相方（protagonist / duotagonist）との関係性",
+      "bond": "相方（protagonist / deuteragonist）との関係性",
       "age": "年齢：(不詳なども可)",
       "gender": "性別：(不詳や良性具有。架空の性別なども可)",
       "personality": "性格：(不詳なども可)",

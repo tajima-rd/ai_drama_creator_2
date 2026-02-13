@@ -30,7 +30,7 @@ Tasks
 - **場所名（必須）：** {{location}}
 - **シーン概要（必須）：** {{scene_summary}}
 - **プロタゴニスト（必須）：** {{protagonist_json}}
-- **デュオタゴニスト（必須）：** {{duotagonist_json}}
+- **デュオタゴニスト（必須）：** {{deuteragonist_json}}
 - **雰囲気（任意）：** {{atmosphere}}
 - **会話トーン（任意）：** {{narrative_tone}}
 - **留意点（任意）：** {{spatial_direction}}

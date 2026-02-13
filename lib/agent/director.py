@@ -24,14 +24,14 @@ class DirectorAgent(BaseAgent):
             project: Project, 
             plotDesign: PlotDesign = None, 
             protagonist: Character = None, 
-            duotagonist: Character = None,
+            deuteragonist: Character = None,
             scenes: list[SceneDesign] = None
         ):
         super().__init__(generator)
         self.project = project
         self.plotDesign = plotDesign
         self.protagonist = protagonist
-        self.duotagonist = duotagonist
+        self.deuteragonist = deuteragonist
         self.scenes = scenes
     
     def show_review_result(self, review_result):
@@ -111,7 +111,7 @@ class DirectorAgent(BaseAgent):
             "facts": spot.facts,
             "instruction": spot.instruction,
             "protagonist_json": self.protagonist.model_dump_json(),
-            "duotagonist_json": self.duotagonist.model_dump_json()
+            "deuteragonist_json": self.deuteragonist.model_dump_json()
         }
 
         response = self._execute(prompt_path, variables, SimpleResponse)
@@ -131,7 +131,7 @@ class DirectorAgent(BaseAgent):
             "instruction": spot.instruction,
             "emotional_arc": self.plotDesign.emotional_arc,
             "protagonist_json": self.protagonist.model_dump_json(),
-            "duotagonist_json": self.duotagonist.model_dump_json(),
+            "deuteragonist_json": self.deuteragonist.model_dump_json(),
             "duration": spot.duration
         }
 

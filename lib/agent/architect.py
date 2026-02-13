@@ -14,7 +14,7 @@ class ArchitectAgent(BaseAgent):
         self.agenda = agenda
 
     def define_characters(self, role_type: str, data_dict: dict):
-        # project.results から該当するパスを取得 ("protagonist" または "duotagonist")
+        # project.results から該当するパスを取得 ("protagonist" または "deuteragonist")
         char_path = self.project.results[role_type]
 
         if not char_path.exists():
@@ -60,8 +60,8 @@ class ArchitectAgent(BaseAgent):
         if response.status == "ready" and response.result:
             if data_dict["role_type"] == "protagonist":
                 response.result.save_json(self.project.results["protagonist"])
-            elif data_dict["role_type"] == "duotagonist":
-                response.result.save_json(self.project.results["duotagonist"])
+            elif data_dict["role_type"] == "deuteragonist":
+                response.result.save_json(self.project.results["deuteragonist"])
             return response.result
         else:
             raise ValueError(f"AIからのプロフィール生成に失敗しました: {response.message}")

@@ -7,7 +7,7 @@ from .response import BaseResponse
 
 class Profile(SaveableModel):
     name: str = Field(..., description="氏名：(ニックネームや不明なども可)")
-    bond: str = Field(..., description="相方（protagonist / duotagonist）との関係性")
+    bond: str = Field(..., description="相方（protagonist / deuteragonist）との関係性")
     age: Optional[str] = Field(None, description="年齢：(不詳なども可)")
     gender: Optional[str] = Field(None, description="性別：(不詳なども可)") 
     personality: Optional[str] = Field(None, description="性格：(不詳なども可)")
@@ -23,7 +23,7 @@ class Profile(SaveableModel):
     voice: Optional[str] = Field(None, description="アサインされた話者。自動選定ロジックで使用")
 
 class Character(SaveableModel):
-    role_type: Literal["protagonist", "duotagonist"]
+    role_type: Literal["protagonist", "deuteragonist"]
     profile: Profile
 
 CharacterResponse = BaseResponse[Character]

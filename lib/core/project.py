@@ -61,7 +61,7 @@ class Project:
             "geography": self.output_dir / "geography_result.json",
             "agenda": self.output_dir / "agenda_result.json",
             "protagonist": self.output_dir / "protagonist_result.json",
-            "duotagonist": self.output_dir / "duotagonist_result.json",
+            "deuteragonist": self.output_dir / "deuteragonist_result.json",
             "plot": self.output_dir / "plot_result.json",
         }
 

@@ -209,8 +209,8 @@ class ActorAgent(BaseAgent):
 
                     if monologue.character == self.protagonist.profile.name:
                         speakers.append(self.protagonist.profile.voice)
-                    elif monologue.character == self.duotagonist.profile.name:
-                        speakers.append(self.duotagonist.profile.voice)
+                    elif monologue.character == self.deuteragonist.profile.name:
+                        speakers.append(self.deuteragonist.profile.voice)
                     else:
                         speakers.append("default")
                     
@@ -240,7 +240,7 @@ class DialogueAgent(BaseAgent):
             agenda:Agenda,
             scripts: list[Script], 
             protagonist:Character, 
-            duotagonist:Character, 
+            deuteragonist:Character, 
             language: str="japanese"
     ):
         super().__init__(generator)
@@ -248,7 +248,7 @@ class DialogueAgent(BaseAgent):
         self.agenda = agenda
         self.scripts = scripts
         self.protagonist = protagonist
-        self.duotagonist = duotagonist
+        self.deuteragonist = deuteragonist
         self.language = language
 
     def generate_dialogues(self):
@@ -277,8 +277,8 @@ class DialogueAgent(BaseAgent):
 
                     if dialogue.character == self.protagonist.profile.name:
                         speakers.append(self.protagonist.profile.voice)
-                    elif dialogue.character == self.duotagonist.profile.name:
-                        speakers.append(self.duotagonist.profile.voice)
+                    elif dialogue.character == self.deuteragonist.profile.name:
+                        speakers.append(self.deuteragonist.profile.voice)
                     else:
                         speakers.append("default")
                 
@@ -331,8 +331,8 @@ class DialogueAgent(BaseAgent):
 
                     if dialogue.character == self.protagonist.profile.name:
                         speakers.append(self.protagonist.profile.voice)
-                    elif dialogue.character == self.duotagonist.profile.name:
-                        speakers.append(self.duotagonist.profile.voice)
+                    elif dialogue.character == self.deuteragonist.profile.name:
+                        speakers.append(self.deuteragonist.profile.voice)
                     else:
                         speakers.append("default")
                     

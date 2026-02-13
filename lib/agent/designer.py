@@ -18,7 +18,7 @@ class DesignerAgent(BaseAgent):
             agenda: Agenda=None, 
             report:Report=None, 
             protagonist: Character = None, 
-            duotagonist: Character = None, 
+            deuteragonist: Character = None, 
             region_summary: RegionSummary = None
         ):
         
@@ -27,7 +27,7 @@ class DesignerAgent(BaseAgent):
         self.report = report
         self.agenda = agenda
         self.protagonist = protagonist
-        self.duotagonist = duotagonist
+        self.deuteragonist = deuteragonist
         self.region_summary = region_summary
     
     def compose_agenda(self):
@@ -87,7 +87,7 @@ class DesignerAgent(BaseAgent):
             "planning": self.agenda.planning,
             "concept": self.agenda.concept,
             "protagonist_json": self.protagonist.model_dump_json(indent=2),
-            "duotagonist_json": self.duotagonist.model_dump_json(indent=2),
+            "deuteragonist_json": self.deuteragonist.model_dump_json(indent=2),
             "region_summary": self.region_summary.summary,
             "region_feature": self.region_summary.features
         }

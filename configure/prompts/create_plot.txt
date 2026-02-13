@@ -41,7 +41,7 @@ Tasks
 {{protagonist_json}}
 
 - **デュオタゴニスト・プロファイル（必須）：** 
-{{duotagonist_json}}
+{{deuteragonist_json}}
 
 - **地域概要（必須）：** {{region_summary}}
 - **地域特性（必須）：** {{region_feature}}

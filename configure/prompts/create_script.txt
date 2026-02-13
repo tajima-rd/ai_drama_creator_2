@@ -35,7 +35,7 @@ Tasks
 - **シーン概要（必須）：** {{scene_summary}}
 - **総文字数（必須）：** {{character_count}}
 - **プロタゴニスト（必須）：** {{protagonist_json}}
-- **デュオタゴニスト（必須）：** {{duotagonist_json}}
+- **デュオタゴニスト（必須）：** {{deuteragonist_json}}
 - **ルビ辞書（任意）：** {{rubi_json}}
 
 # Output Schema (JSON)

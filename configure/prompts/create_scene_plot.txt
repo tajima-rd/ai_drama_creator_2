@@ -7,7 +7,7 @@ Tasks
 
 # Constraints
 - **厳守事項：**
-    - 「シーン設計書」は二人の登場人物（{{protagonist_json}}と{{duotagonist_json}}）が会話することを前提としてください。
+    - 「シーン設計書」は二人の登場人物（{{protagonist_json}}と{{deuteragonist_json}}）が会話することを前提としてください。
 - **禁止事項：**
     - 物語の**全体あらすじ**と矛盾してはいけません。
     - **スポット名** に関係しない場所の話をしてはいけません。
@@ -29,7 +29,7 @@ Tasks
 {{protagonist_json}}
 
 - **デュオタゴニスト・プロファイル（必須）：** 
-{{duotagonist_json}}
+{{deuteragonist_json}}
 
 # Output Schema (JSON)
 {
