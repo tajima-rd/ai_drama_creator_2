@@ -57,7 +57,7 @@ class WriterAgent(BaseAgent):
         return scenarios
 
     def write_scripts(self):
-        scripts = None
+        scripts = []
 
         for scenario in self.scenarios:
             scene_id = scenario.scene_id
