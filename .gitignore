@@ -6,6 +6,7 @@ venv/
 
 # === Project Specific Outputs ===
 # プロジェクト成果物（再生成可能なもの）
+project/project.json
 project/output/
 qwen3-tts/
 *.log
