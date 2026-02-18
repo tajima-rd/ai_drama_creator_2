@@ -5,11 +5,11 @@ from ..agent.base_agent import SaveableModel
 from .response import BaseResponse
 
 class Report(SaveableModel):
-    title: str = Field(..., description="ストーリーの核となるテーマを明確に表現したタイトル")
-    background: str = Field(..., description="調査背景（200字程度）")
-    tourist_data_summary: str = Field(..., description="観光客データの要約（400字程度）")
-    potential_needs: str = Field(..., description="潜在ニーズの分析（400字程度）")
-    potential_seeds: str = Field(..., description="潜在シーズの分析（400字程度）")
-    target_layer: str = Field(..., description="ターゲット層の分析（400字程度）")
+    title: Optional[str] = Field(None, description="レポートタイトル")
+    background: Optional[str] = Field(None, description="調査背景")
+    tourist_data_summary: Optional[str] = Field(None, description="データの要約")
+    potential_needs: Optional[str] = Field(None, description="潜在ニーズ")
+    potential_seeds: Optional[str] = Field(None, description="潜在シーズ")
+    target_layer: Optional[str] = Field(None, description="ターゲット層")
 
 ReportResponse = BaseResponse[Report]

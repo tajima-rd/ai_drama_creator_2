@@ -165,7 +165,7 @@ def main():
     # Run the analysis agent
     current_situation = {
         "known_issues": "多くの観光客が訪れるが、実際には昼食のみが目的化している。滞在時間は短く、経済効果が限定的であるため、出石そば以外の魅力を発信することが必要となっている。観光客の年齢層も高い傾向がある。",
-        "problmes":"特に、伝統的な町並み、永楽館、福富家住宅、明治館、家老屋敷などの魅力を十分に活かしきれていないのが課題である。",
+        "problems":"特に、伝統的な町並み、永楽館、福富家住宅、明治館、家老屋敷などの魅力を十分に活かしきれていないのが課題である。",
         "future_plan":"少子高齢化社会の現状を考えると、今後は若い世代を中心により広い層に向けて情報を発信する必要がある。"
     }
     report = analyst.analyze_current_issues(current_situation)
@@ -173,106 +173,106 @@ def main():
     # Show the time for analyzing
     previous_time = watcher(start_time, previous_time)  # 参考時間：[21:30:11] 経過時間: 3.67秒
     
-    print("--- [03] Compose the agenda ---")
-    # Run the designer agent
-    designer.report = report
-    agenda = designer.compose_agenda()
+    # print("--- [03] Compose the agenda ---")
+    # # Run the designer agent
+    # designer.report = report
+    # agenda = designer.compose_agenda()
 
-    # Show the time for composing the agenda
-    previous_time = watcher(start_time, previous_time)  
+    # # Show the time for composing the agenda
+    # previous_time = watcher(start_time, previous_time)  
 
-    print("--- [04] Setup scene settings ---")
-    director.setup_scenes(spot_data)
+    # print("--- [04] Setup scene settings ---")
+    # director.setup_scenes(spot_data)
 
-    print("--- [05] Define the characters---")
-    architect.agenda = agenda
-    director.agenda = agenda
+    # print("--- [05] Define the characters---")
+    # architect.agenda = agenda
+    # director.agenda = agenda
 
-    print("-- Protagonist --")
-    role_type_protagonist = "protagonist"
-    character_name = "ほげほげ"
-    relation_to_deuteragonist = "相方の「ふがふが」とは、学生時代からの同級生で、いつも間違いを正してもらっている。"
-    protagonist_definition = "宇宙から飛来した宇宙人。男性。地球に来たばかりなので、地球の知識が全く無いので、目に映るすべてのものを、全く別のものと認識してしまう。勝手な想像で的外れなことしか言わず、周りを惑わしたり、劇中では笑いを誘う役割を持つ。"
-    protagonist = architect.define_characters(
-        character_name, 
-        role_type_protagonist, 
-        relation_to_deuteragonist, 
-        protagonist_definition)
+    # print("-- Protagonist --")
+    # role_type_protagonist = "protagonist"
+    # character_name = "ほげほげ"
+    # relation_to_deuteragonist = "相方の「ふがふが」とは、学生時代からの同級生で、いつも間違いを正してもらっている。"
+    # protagonist_definition = "宇宙から飛来した宇宙人。男性。地球に来たばかりなので、地球の知識が全く無いので、目に映るすべてのものを、全く別のものと認識してしまう。勝手な想像で的外れなことしか言わず、周りを惑わしたり、劇中では笑いを誘う役割を持つ。"
+    # protagonist = architect.define_characters(
+    #     character_name, 
+    #     role_type_protagonist, 
+    #     relation_to_deuteragonist, 
+    #     protagonist_definition)
     
-    print("-- Reviewing the protagonist --")
-    protagonist_review = director.review_character(protagonist, protagonist_definition)
+    # print("-- Reviewing the protagonist --")
+    # protagonist_review = director.review_character(protagonist, protagonist_definition)
 
-    print("-- Modifying the protagonist based on the review result --")
-    architect.modify_character(role_type_protagonist, protagonist_review)
+    # print("-- Modifying the protagonist based on the review result --")
+    # architect.modify_character(role_type_protagonist, protagonist_review)
     
-    print("-- deuteragonist --")
-    role_type_deuteragonist = "deuteragonist"
-    character_name = "ふがふが"
-    relation_to_protagonist = "相方の「ほげほげ」とは、学生時代からの同級生で、いつも想像を絶する発言をする「ほげほげ」に振り回されている。"
-    deuteragonist_definition = "宇宙から飛来した宇宙人。女性。地球に来たばかりなので、地球の知識は全く無い。冷静な常識人。知らないことは手元の端末で即座に調べ、「ほげほげ」の暴走を止める役割を持つ。"
+    # print("-- deuteragonist --")
+    # role_type_deuteragonist = "deuteragonist"
+    # character_name = "ふがふが"
+    # relation_to_protagonist = "相方の「ほげほげ」とは、学生時代からの同級生で、いつも想像を絶する発言をする「ほげほげ」に振り回されている。"
+    # deuteragonist_definition = "宇宙から飛来した宇宙人。女性。地球に来たばかりなので、地球の知識は全く無い。冷静な常識人。知らないことは手元の端末で即座に調べ、「ほげほげ」の暴走を止める役割を持つ。"
 
-    deuteragonist = architect.define_characters(
-        character_name, 
-        role_type_deuteragonist, 
-        relation_to_protagonist, 
-        deuteragonist_definition)
+    # deuteragonist = architect.define_characters(
+    #     character_name, 
+    #     role_type_deuteragonist, 
+    #     relation_to_protagonist, 
+    #     deuteragonist_definition)
 
-    print("-- Reviewing the deuteragonist --")
-    deuteragonist_review = director.review_character(deuteragonist, deuteragonist_definition)
+    # print("-- Reviewing the deuteragonist --")
+    # deuteragonist_review = director.review_character(deuteragonist, deuteragonist_definition)
 
-    print("-- Modifying the deuteragonist based on the review result --")
-    architect.modify_character(role_type_deuteragonist, deuteragonist_review)
+    # print("-- Modifying the deuteragonist based on the review result --")
+    # architect.modify_character(role_type_deuteragonist, deuteragonist_review)
 
-    # Show the time for composing the agenda
-    previous_time = watcher(start_time, previous_time)  
+    # # Show the time for composing the agenda
+    # previous_time = watcher(start_time, previous_time)  
 
-    print("--- [05] Design the story plot ---")
-    # Run the designer agent
-    designer.protagonist = protagonist
-    designer.deuteragonist = deuteragonist
-    designer.region_summary = analyst.region_summary
-    plot_design = designer.design_plot()
+    # print("--- [05] Design the story plot ---")
+    # # Run the designer agent
+    # designer.protagonist = protagonist
+    # designer.deuteragonist = deuteragonist
+    # designer.region_summary = analyst.region_summary
+    # plot_design = designer.design_plot()
 
-    # Show the time for designing the plot
-    previous_time = watcher(start_time, previous_time)  
+    # # Show the time for designing the plot
+    # previous_time = watcher(start_time, previous_time)  
 
-    print("--- [06] Define the scene settings ---")
-    director.plotDesign = plot_design
-    director.protagonist = protagonist
-    director.deuteragonist = deuteragonist
+    # print("--- [06] Define the scene settings ---")
+    # director.plotDesign = plot_design
+    # director.protagonist = protagonist
+    # director.deuteragonist = deuteragonist
 
-    scenes = director.setup_scenes(spot_data)
+    # scenes = director.setup_scenes(spot_data)
 
-    # 進行状況の表示
-    previous_time = watcher(start_time, previous_time)
+    # # 進行状況の表示
+    # previous_time = watcher(start_time, previous_time)
 
-    print("--- [07] Write the scenario ---")
-    writer.protagonist = protagonist
-    writer.deuteragonist = deuteragonist
-    writer.scenes = scenes
+    # print("--- [07] Write the scenario ---")
+    # writer.protagonist = protagonist
+    # writer.deuteragonist = deuteragonist
+    # writer.scenes = scenes
 
-    writer.write_scenarios(spot_data)
+    # writer.write_scenarios(spot_data)
 
-    # Show the time for writing the scenario
-    previous_time = watcher(start_time, previous_time)
+    # # Show the time for writing the scenario
+    # previous_time = watcher(start_time, previous_time)
 
-    print("--- [08] Write the scripts ---")
-    writer.write_scripts()
+    # print("--- [08] Write the scripts ---")
+    # writer.write_scripts()
 
-    previous_time = watcher(start_time, previous_time)
+    # previous_time = watcher(start_time, previous_time)
 
-    print("--- [09] Generate sound drama ---")
-    protagonist.profile.voice = "ja-JP-Chirp3-HD-Puck"
-    deuteragonist.profile.voice = "ja-JP-Chirp3-HD-Zephyr"
+    # print("--- [09] Generate sound drama ---")
+    # protagonist.profile.voice = "ja-JP-Chirp3-HD-Puck"
+    # deuteragonist.profile.voice = "ja-JP-Chirp3-HD-Zephyr"
 
-    dialogue.protagonist = protagonist
-    dialogue.deuteragonist = deuteragonist
-    dialogue.scripts = writer.scripts
-    dialogue.language = "japanese"
+    # dialogue.protagonist = protagonist
+    # dialogue.deuteragonist = deuteragonist
+    # dialogue.scripts = writer.scripts
+    # dialogue.language = "japanese"
 
-    dialogue.generate_dialogues()
+    # dialogue.generate_dialogues()
 
-    watcher(start_time, previous_time)
+    # watcher(start_time, previous_time)
 
 if __name__ == "__main__":
     main()
