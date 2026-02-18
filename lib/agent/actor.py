@@ -130,7 +130,7 @@ class ActorAgent(BaseAgent):
                  scripts: list[Script]=[],
                  language: str="japanese"
                  ):
-        super().__init__(voice_generator)
+        super().__init__(voice_generator=voice_generator)
         self.project = project
         self.character = character
         self.scripts = scripts
@@ -151,9 +151,9 @@ class ActorAgent(BaseAgent):
             base_name = str(script.scene_id) + "_" + script.title
             output_file = self.project.drama_dir / f"{base_name}.wav"
             if not os.path.exists(output_file):
-                monologues = None
-                speakers = None
-                intructs = None
+                monologues = []
+                speakers = []
+                intructs = []
                 
                 for monologue in script.body:
                     monologues.append(monologue.text)
@@ -200,9 +200,9 @@ class ActorAgent(BaseAgent):
 
             if not os.path.exists(output_file):
                 # スクリプトデータの抽出
-                monologues = None
-                speakers = None
-                intructs = None
+                monologues = []
+                speakers = []
+                intructs = []
                 for monologue in script.body:
                     monologues.append(monologue.text)
                     intructs.append(monologue.instruct)
@@ -212,7 +212,7 @@ class ActorAgent(BaseAgent):
                     elif monologue.character == self.deuteragonist.profile.name:
                         speakers.append(self.deuteragonist.profile.voice)
                     else:
-                        speakers.append("default")
+                        raise ValueError(f"Unknown character in dialogue: {monologue.character}. Please check the script and character profiles.")
                     
                     if isinstance(self.language, str):
                         language_list = [self.language] * len(script.body)
@@ -243,7 +243,7 @@ class DialogueAgent(BaseAgent):
             deuteragonist:Character = None, 
             language: str="japanese"
     ):
-        super().__init__(voice_generator)
+        super().__init__(voice_generator=voice_generator)
         self.project = project
         self.agenda = agenda
         self.scripts = scripts
@@ -252,24 +252,78 @@ class DialogueAgent(BaseAgent):
         self.language = language
 
     def generate_dialogues(self):
-        if isinstance(self.generator, QwenSoundGenerator):
+        if isinstance(self.voice_generator, QwenSoundGenerator):
+            print("--- Qwen Sound Generator を使用 ---")
             self._generate_qwen_api()
-        elif isinstance(self.generator, GcpSoundGenerator):
+        elif isinstance(self.voice_generator, GcpSoundGenerator):
+            print("--- GCP Sound Generator を使用 ---")
             self._generate_gcp_api()
         else:
-            self._generate_qwen_local() 
+            # 修正：勝手にローカルを動かさず、型を特定してエラーを出す
+            actual_type = type(self.voice_generator)
+            raise ValueError(f"想定外のジェネレーター型です: {actual_type}. GCP/Qwenの判定に失敗しました。")
     
     def _generate_gcp_api(self):
-        pass
+        for script in self.scripts:
+            base_name = str(script.scene_id) + "_" + script.title
+            output_file = self.project.drama_dir / f"{base_name}.mp3"
+            if not os.path.exists(output_file):
+                dialogues = []
+                speakers = []
+                intructs = []
+                
+                for dialogue in script.body:
+                    dialogues.append(dialogue.text)
+                    intructs.append(dialogue.instruct)
+
+                    # 台本側の名前（ほげほげ）
+                    char_name = dialogue.character.strip()
+                    
+                    # 設定側の長い名前（氏名：ほげほげ...）
+                    proto_full_name = self.protagonist.profile.name
+                    deut_full_name = self.deuteragonist.profile.name
+
+                    # 'ほげほげ' が '氏名：ほげほげ...' の中に含まれているかチェック
+                    if char_name in proto_full_name:
+                        speakers.append(self.protagonist.profile.voice)
+                    elif char_name in deut_full_name:
+                        speakers.append(self.deuteragonist.profile.voice)
+                    else:
+                        # 知らない名前（モブキャラ）が来た場合の処理
+                        print(f"INFO: 未定義キャラ '{char_name}' を検出。デフォルトボイスを割り当てます。")
+                        # GCPであれば標準的な声を指定 (例: ja-JP-Neural2-B など)
+                        speakers.append("ja-JP-Neural2-B")
+                # --- 言語リストの作成は、全てのセリフ（dialogues）を溜めた後に実行 ---
+                if isinstance(self.language, str):
+                    language_list = [self.language] * len(dialogues)
+                else:
+                    language_list = self.language
+
+                result = self.voice_generator.generate(
+                    output_path=output_file,
+                    texts=dialogues,
+                    languages=language_list,
+                    speakers=speakers,
+                    instructs=intructs
+                )
+
+                # 返り値が None なら、その時点で処理を止める（サーバーが死んでいる証拠）
+                if result is None:
+                    print(f"ERROR: Sound generation failed for {output_file}. Stopping further processing.")
+                    break
+
+                print(f"Sound file generated: {output_file}")
+            else:
+                print(f"Sound file already exists: {output_file}")
 
     def _generate_qwen_api(self):
         for script in self.scripts:
             base_name = str(script.scene_id) + "_" + script.title
             output_file = self.project.drama_dir / f"{base_name}.wav"
             if not os.path.exists(output_file):
-                dialogues = None
-                speakers = None
-                intructs = None
+                dialogues = []
+                speakers = []
+                intructs = []
                 
                 for dialogue in script.body:
                     dialogues.append(dialogue.text)
@@ -280,7 +334,7 @@ class DialogueAgent(BaseAgent):
                     elif dialogue.character == self.deuteragonist.profile.name:
                         speakers.append(self.deuteragonist.profile.voice)
                     else:
-                        speakers.append("default")
+                        raise ValueError(f"Unknown character in dialogue: {dialogue.character}. Please check the script and character profiles.")
                 
                 # --- 言語リストの作成は、全てのセリフ（dialogues）を溜めた後に実行 ---
                 if isinstance(self.language, str):
@@ -322,9 +376,9 @@ class DialogueAgent(BaseAgent):
 
             if not os.path.exists(output_file):
                 # スクリプトデータの抽出
-                dialogues = None
-                speakers = None
-                intructs = None
+                dialogues = []
+                speakers = []
+                intructs = []
                 for dialogue in script.body:
                     dialogues.append(dialogue.text)
                     intructs.append(dialogue.instruct)
@@ -334,7 +388,7 @@ class DialogueAgent(BaseAgent):
                     elif dialogue.character == self.deuteragonist.profile.name:
                         speakers.append(self.deuteragonist.profile.voice)
                     else:
-                        speakers.append("default")
+                        raise ValueError(f"Unknown character in dialogue: {dialogue.character}. Please check the script and character profiles.")
                     
                     if isinstance(self.language, str):
                         language_list = [self.language] * len(script.body)

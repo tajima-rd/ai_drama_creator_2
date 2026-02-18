@@ -19,6 +19,84 @@ from google.cloud import texttospeech
 
 from .api_client import ApiClient, Qwen3TTSApiClient
 
+from enum import Enum
+
+class LanguageCode(Enum):
+    # 基本設定
+    AFRIKAANS_SA = "af-ZA"
+    ARABIC = "ar-XA"
+    BASQUE_ES = "eu-ES"
+    BENGALI_IN = "bn-IN"
+    BULGARIAN_BG = "bg-BG"
+    CATALAN_ES = "ca-ES"
+    CHINESE_HK = "yue-HK"
+    CROATIAN_HR = "hr-HR"
+    CZECH_CZ = "cs-CZ"
+    DANISH_DK = "da-DK"
+    DUTCH_BE = "nl-BE"
+    DUTCH_NL = "nl-NL"
+    ENGLISH_AU = "en-AU"
+    ENGLISH_IN = "en-IN"
+    ENGLISH_GB = "en-GB"
+    ENGLISH_US = "en-US"
+    ESTONIAN_EE = "et-EE"
+    FILIPINO_PH = "fil-PH"
+    FINNISH_FI = "fi-FI"
+    FRENCH_CA = "fr-CA"
+    FRENCH_FR = "fr-FR"
+    GALICIAN_ES = "gl-ES"
+    GERMAN_DE = "de-DE"
+    GREEK_GR = "el-GR"
+    HUNGARIAN_HU = "hu-HU"
+    ICELANDIC_IS = "is-IS"
+    ITALIAN_IT = "it-IT"
+    LATVIAN_LV = "lv-LV"
+    LITHUANIAN_LT = "lt-LT"
+    NORWEGIAN_NO = "nb-NO"
+    POLISH_PL = "pl-PL"
+    PORTUGUESE_BR = "pt-BR"
+    PORTUGUESE_PT = "pt-PT"
+    ROMANIAN_RO = "ro-RO"
+    RUSSIAN_RU = "ru-RU"
+    SERBIAN_RS = "sr-RS"
+    SLOVAK_SK = "sk-SK"
+    SLOVENIAN_SI = "sl-SI"
+    SPANISH_ES = "es-ES"
+    SPANISH_US = "es-US"
+    SWEDISH_SE = "sv-SE"
+    UKRAINIAN_UA = "uk-UA"
+    GUJARATI_IN = "gu-IN"
+    HEBREW_IL = "he-IL"
+    HINDI_IN = "hi-IN"
+    INDONESIAN_ID = "id-ID"
+    JAPANESE_JP = "ja-JP"
+    KANNADA_IN = "kn-IN"
+    KOREAN_KR = "ko-KR"
+    MALAY_MY = "ms-MY"
+    MALAYALAM_IN = "ml-IN"
+    MANDARIN_CN = "cmn-CN"
+    MANDARIN_TW = "cmn-TW"
+    MARATHI_IN = "mr-IN"
+    PUNJABI_IN = "pa-IN"
+    TAMIL_IN = "ta-IN"
+    TELUGU_IN = "te-IN"
+    THAI_TH = "th-TH"
+    TURKISH_TR = "tr-TR"
+    URDU_IN = "ur-IN"
+    VIETNAMESE_VN = "vi-VN"
+
+    @classmethod
+    def from_str(cls, lang_name: str):
+        search_target = lang_name.lower().replace(" ", "_")
+        
+        for lang in cls:
+            # Enumのメンバー名 (JAPANESE_JP) か、値 (ja-JP) に含まれているか
+            if search_target in lang.name.lower() or search_target == lang.value.lower():
+                return lang.value
+        
+        # 見つからない場合は元の文字列を返す（GCP側が直接コードを受け取れる可能性のため）
+        return lang_name
+
 @dataclass
 class WriteConfig:
     temperature: float = 0.8
@@ -133,7 +211,8 @@ class LlamaCppTextGenerator(TextGenerator):
             "messages": messages,
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_output_tokens,
-            "stream": False
+            "stream": False,
+            "cache_prompt": False,
         }
 
     def generate(self, messages: List[Dict[str, str]]) -> Optional[str]:
@@ -231,7 +310,8 @@ class GcpSoundGenerator(SoundGenerator):
         try:
             for i, text in enumerate(texts):
                 try:
-                    language = languages[i]
+                    raw_language = languages[i]
+                    language = LanguageCode.from_str(raw_language)
                     speaker = speakers[i]
                 except IndexError as e:
                     # 途中でリスト長が合わないことが判明した場合、詳細な情報を添えてエラーを出す

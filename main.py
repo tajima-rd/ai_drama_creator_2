@@ -10,8 +10,8 @@ from enum import Enum
 
 # core / schema / genai
 from lib.core.project import Project
-from lib.genai.api_client import GeminiApiClient, ApiKeyManager, LlamaCppApiClient, Qwen3TTSApiClient
-from lib.genai.generators import QwenSoundGenerator, WriteConfig, GeminiTextGenerator, LlamaCppTextGenerator
+from lib.genai.api_client import GeminiApiClient, ApiKeyManager, LlamaCppApiClient, Qwen3TTSApiClient, GcpTTSApiClient
+from lib.genai.generators import QwenSoundGenerator, WriteConfig, GeminiTextGenerator, LlamaCppTextGenerator, GcpSoundGenerator
 from lib.schema.character import Character
 
 # agents
@@ -108,8 +108,16 @@ def load_tts_client(project: Project):
             api_url=project.tts_api,
             api_key=tts_key
         )
-
+        print(f"Initialized Qwen3TTSApiClient with model: {project.tts_model} and API URL: {project.tts_api}")
         generator = QwenSoundGenerator(api_client=client)
+    elif project.tts_client == "GCPTTS":
+        client = GcpTTSApiClient(
+            api_key="dummy",
+            model_name=project.tts_model,
+            api_config_file=project.secret_dir / "gcp_tts_credentials.json"
+        )
+        print(f"Initialized GcpTTSApiClient with model: {project.tts_model}")
+        generator = GcpSoundGenerator(api_client=client)
     else:
         raise ValueError(f"未対応のTTSクライアントです: {project.tts_client}")
         return None
@@ -173,56 +181,47 @@ def main():
     # Show the time for composing the agenda
     previous_time = watcher(start_time, previous_time)  
 
-    print("--- [04] Define the characters---")
+    print("--- [04] Setup scene settings ---")
+    director.setup_scenes(spot_data)
+
+    print("--- [05] Define the characters---")
     architect.agenda = agenda
+    director.agenda = agenda
 
     print("-- Protagonist --")
     role_type_protagonist = "protagonist"
-    protagonist_setting = {
-        "role_type": role_type_protagonist,
-        "name": "ほげほげ",
-        "action": "勝手な想像で的外れなことしか言わず、周りを惑わしたり、劇中では笑いを誘う役割を持つ",
-        "voice": "Aiden",
-        "personality": "真面目だけれど、アホで自尊心が高い。好奇心が非常に高い。思い込みが激しい。勝手な想像で的外れなことしか言わない。", 
-        "cognitive_bias": "地球上で見かけるあらゆるものを、地球人による宇宙侵略の企てだと勘ぐってしまう。地球のことを全く知らないので、「城跡」を「地球人の宇宙侵略基地」と言ったり、食べ物を食べ物以外のなにかと勘違いする。", 
-        "value_system": "とにかく、好奇心旺盛で新しいものや、物珍しいものに夢中になる。偉そうではあるが、比較的簡単に納得する。", 
-        "text_example": "われは、宇宙で一番高貴な天才である！！わはははは！", 
-        "background": "銀河の彼方から飛来した宇宙人。乗っていた宇宙船が有子山に墜落し、調査のために出石の市街に降りてきた。賢いようには見えない。", 
-        "bond": "ふがふが",
-        "gender": "男",
-        "age": "不明",
-        "speaking_style": "常に自信満々で、上から目線で話す。",
-        "catchphrase": "「任せておけ！」,「まぁ、実は、その可能性も考えていたが．．．」",
-        "knowledge": "地球に関する知識は皆無であるため、宇宙基準の知識で考える。頭は良いが、地球の常識とは異なるため、事実からかけ離れたような推測を行う。",
-        "experience": "銀河の彼方の星の貴族の一人息子。子供のころから英才教育を受けてきた。彼のミスで宇宙船が有子山に墜落したが、自分が悪いとは思っていない。市街地には地球の調査のために降りてきた。",
-        "extra_settings": "なし",
-        "relationships": "「ふがふが」を無自覚に困らせることが多い。"
-    }
-    protagonist = architect.define_characters(role_type_protagonist, protagonist_setting)
+    character_name = "ほげほげ"
+    relation_to_deuteragonist = "相方の「ふがふが」とは、学生時代からの同級生で、いつも間違いを正してもらっている。"
+    protagonist_definition = "宇宙から飛来した宇宙人。男性。地球に来たばかりなので、地球の知識が全く無いので、目に映るすべてのものを、全く別のものと認識してしまう。勝手な想像で的外れなことしか言わず、周りを惑わしたり、劇中では笑いを誘う役割を持つ。"
+    protagonist = architect.define_characters(
+        character_name, 
+        role_type_protagonist, 
+        relation_to_deuteragonist, 
+        protagonist_definition)
+    
+    print("-- Reviewing the protagonist --")
+    protagonist_review = director.review_character(protagonist, protagonist_definition)
 
+    print("-- Modifying the protagonist based on the review result --")
+    architect.modify_character(role_type_protagonist, protagonist_review)
+    
     print("-- deuteragonist --")
     role_type_deuteragonist = "deuteragonist"
-    deuteragonist_settings = {
-        "role_type": role_type_deuteragonist,
-        "name": "ふがふが",
-        "action": "手持ちの端末で正しい情報を検索し説明し、相方が憶測で喋っている内容を訂正し、正しく伝えるという役割を持つ。",
-        "voice": "Ono_Anna",
-        "personality": "知的で客観的な常識人。いつも冷静に判断することを心がけており、憶測で行動することを避ける。", 
-        "cognitive_bias": "地球のことを全く知らないので、あらゆるものを手元のAI端末で検索あるいは分析し、正しい知識を得る。", 
-        "value_system": "保守的で得体の知れないものには近づかない。自分の故郷の星が宇宙で一番だと考えている。", 
-        "text_example": "「また勝手なことを言って！」, 「ちょっと、待って！ちゃんと調べるから！」", 
-        "background": "銀河の彼方から飛来したもう一人の宇宙人。相方と一緒に出石の市街に降りてきた。あまり、地球に興味は無いが、相方の行動や発言に不安を感じてついてきた。", 
-        "bond": "ほげほげ",
-        "gender": "女",
-        "age": "不明",
-        "speaking_style": "やや冷淡で機械的な口調",
-        "catchphrase": "「本当にそうかしら？」",
-        "knowledge": "地球に関する知識ないが、機械の扱いに長けており、地球の常識についても迅速に調べて整理することができる。",
-        "experience": "銀河の彼方の星の一般家庭の長女。非常に優秀であるが、何故かトラブルにまきこまれたり、周囲の人間の世話を焼くことが多い。学生時代は常に最優秀学生をキープしていた。",
-        "extra_settings": "なし",
-        "relationships": "いつも「ほげほげ」の言動に振り回される。"
-    }
-    deuteragonist = architect.define_characters(role_type_deuteragonist, deuteragonist_settings)
+    character_name = "ふがふが"
+    relation_to_protagonist = "相方の「ほげほげ」とは、学生時代からの同級生で、いつも想像を絶する発言をする「ほげほげ」に振り回されている。"
+    deuteragonist_definition = "宇宙から飛来した宇宙人。女性。地球に来たばかりなので、地球の知識は全く無い。冷静な常識人。知らないことは手元の端末で即座に調べ、「ほげほげ」の暴走を止める役割を持つ。"
+
+    deuteragonist = architect.define_characters(
+        character_name, 
+        role_type_deuteragonist, 
+        relation_to_protagonist, 
+        deuteragonist_definition)
+
+    print("-- Reviewing the deuteragonist --")
+    deuteragonist_review = director.review_character(deuteragonist, deuteragonist_definition)
+
+    print("-- Modifying the deuteragonist based on the review result --")
+    architect.modify_character(role_type_deuteragonist, deuteragonist_review)
 
     # Show the time for composing the agenda
     previous_time = watcher(start_time, previous_time)  
@@ -263,8 +262,15 @@ def main():
     previous_time = watcher(start_time, previous_time)
 
     print("--- [09] Generate sound drama ---")
-    
-    # generate_sound_drama(project, writer, protagonist, deuteragonist, language="japanese")
+    protagonist.profile.voice = "ja-JP-Chirp3-HD-Puck"
+    deuteragonist.profile.voice = "ja-JP-Chirp3-HD-Zephyr"
+
+    dialogue.protagonist = protagonist
+    dialogue.deuteragonist = deuteragonist
+    dialogue.scripts = writer.scripts
+    dialogue.language = "japanese"
+
+    dialogue.generate_dialogues()
 
     watcher(start_time, previous_time)
 

@@ -106,7 +106,6 @@ class Qwen3TTSApiClient(ApiClient):
         }
         print(f"Qwen3TTS ApiClientがモデル '{self.model_name}' (URL: {self.api_url}) 用に初期化されました。")
 
-
 class GcpTTSApiClient(ApiClient):
     client_type = "gcp_tts"
 
@@ -118,7 +117,7 @@ class GcpTTSApiClient(ApiClient):
         ):
         super().__init__(api_key, model_name)   
         self.api_config_file = api_config_file
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.api_config_file
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(self.api_config_file)
         
         # GCPの認証は環境変数で行うため、ここでは特に処理しない
         print(f"GcpTtsApiClientが設定ファイル '{self.api_config_file}' 用に設定されました。")

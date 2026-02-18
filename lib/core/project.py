@@ -11,12 +11,12 @@ class Project:
         gis_data: Path = None,
         rubi_map: Path = None,
         base_path: Path = None,
-        llm_client: Optional[str] = "LlamaCpp",
-        llm_model: Optional[str] = "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
-        llm_api: Optional[str] = "http://localhost:8080/chat/completions",
-        tts_client: Optional[str] = "Qwen3TTS",
-        tts_model: Optional[str] = "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
-        tts_api: Optional[str] = "http://localhost:8000/generate"
+        llm_client: Optional[str] = "",
+        llm_model: Optional[str] = "",
+        llm_api: Optional[str] = "",
+        tts_client: Optional[str] = "",
+        tts_model: Optional[str] = "",
+        tts_api: Optional[str] = ""
     ):
         self.project_name = project_name
         self.description = description
@@ -35,6 +35,9 @@ class Project:
                 self.project_dir = (root / project_root).resolve()
 
         self.prompt_dir = (root.parent / "configure" / "prompts").resolve()
+        self.secret_dir = (root.parent / "configure" / "secret").resolve()
+        self.system_dir = (root.parent / "configure" / "system").resolve()
+
         self.gis_data = (root.parent / gis_data).resolve()
         self.rubi_map = (root.parent / rubi_map).resolve()
 

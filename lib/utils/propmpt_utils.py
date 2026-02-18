@@ -23,7 +23,8 @@ class PromptType(Enum):
     REVIEW_SCENE_PLOT = "review_scene_plot.txt"
     REVIEW_SCENARIO = "review_scenario.txt"
     REVIEW_REGION_SUMMARY = "review_region_summary.txt"
-    
+
+    MODIFY_CHARACTER = "modify_character.txt"
 
 class PromptLoader:
     def __init__(

@@ -2,6 +2,9 @@ import geopandas as gpd
 
 from pathlib import Path
 
+from lib.schema.agenda import Agenda
+from lib.schema.review import ReviewResponse
+
 from .base_agent import BaseAgent
 from .analyst import AnalysisAgent
 from .architect import ArchitectAgent
@@ -22,6 +25,7 @@ class DirectorAgent(BaseAgent):
             self, 
             text_generator, 
             project: Project, 
+            agenda: Agenda=None, 
             plotDesign: PlotDesign = None, 
             protagonist: Character = None, 
             deuteragonist: Character = None,
@@ -29,6 +33,7 @@ class DirectorAgent(BaseAgent):
         ):
         super().__init__(text_generator)
         self.project = project
+        self.agenda = agenda
         self.plotDesign = plotDesign
         self.protagonist = protagonist
         self.deuteragonist = deuteragonist
@@ -58,7 +63,34 @@ class DirectorAgent(BaseAgent):
             return response.result
         else:
             raise ValueError(f"AIからの地域概要レビューに失敗しました: {response.message}") 
+    
+    def review_character(self, character: Character, user_definition: str) -> ReviewResponse:
+        prompt_type = PromptType.REVIEW_CHARACTER
+        prompt_path = PromptLoader.get_path(self.project.prompt_dir, prompt_type)
+
+        variables = {
+            "story_concept": self.agenda.concept,
+            "user_definition": user_definition,
+            "age": character.profile.age,
+            "gender": character.profile.gender,
+            "bond": character.profile.bond,
+            "personality": character.profile.personality,
+            "cognitive_bias": character.profile.cognitive_bias,
+            "value_system": character.profile.value_system,
+            "speaking_style": character.profile.speaking_style,
+            "background": character.profile.background,
+            "knowledge": character.profile.knowledge,
+            "experience": character.profile.experience,
+            "action": character.profile.action
+        }
         
+        response = self._execute(prompt_path, variables, ReviewResponse)
+        if response.status == "ready" and response.result:
+            review_result = response.result
+            return review_result
+        else:
+            raise ValueError(f"AIからのキャラクターレビューに失敗しました: {response.message}")
+
     def setup_scenes(self, spot_data: gpd.GeoDataFrame):
         self.scenes = []
 
@@ -74,6 +106,7 @@ class DirectorAgent(BaseAgent):
             )
             self.scenes.append(scene)
 
+    def create_scenes(self):
         # スポットごとに処理
         for i, spot in enumerate(self.scenes):
             scene_id = spot.scene_id
@@ -87,7 +120,7 @@ class DirectorAgent(BaseAgent):
                     self.scenes[i].scene_plot = scene_plot
 
                     print(f"  -> Creating full scene details...")
-                    self.scenes[i] = self._create_scene(spot)
+                    self.scenes[i] = self._create_scene_setting(spot)
 
                     print(f"  -> Scene {scene_id} saved.")
                 except Exception as e:
@@ -121,7 +154,7 @@ class DirectorAgent(BaseAgent):
         else:
             raise ValueError(f"Failed to create scene plot. Response message: {response.message}")
 
-    def _create_scene(self, spot) -> SceneDesign:
+    def _create_scene_setting(self, spot) -> SceneDesign:
         # パスの解決
         prompt_path = PromptLoader.get_path(self.project.prompt_dir,  PromptType.CREATE_SCENE)
 
