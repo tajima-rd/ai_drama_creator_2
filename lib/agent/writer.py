@@ -84,7 +84,7 @@ class WriterAgent(BaseAgent):
             "scene_id": scene.scene_id,
             "location": scene.location,
             "scene_summary": scene.scene_summary,
-            "estimated_duration": scene.duration,
+            "duration": scene.duration,   # ← "estimated_duration" から "duration" に修正
             "protagonist_json": self.protagonist.model_dump_json(),
             "deuteragonist_json": self.deuteragonist.model_dump_json(),
             "atmosphere": scene.atmosphere,

@@ -76,21 +76,52 @@ class BaseAgent:
         # 最低限のクリーニング（前後の空白除去など）
         return raw_text.strip()
 
-    def _execute(self, prompt_path: Path, variables: Dict[str, Any], response_schema: Type[T], max_retries: int =10) -> T:
+    def _execute(
+        self, 
+        prompt_path: Path, 
+        variables: Dict[str, Any], 
+        response_schema: Type[T], 
+        max_retries: int = 10,
+        retry_on_logical_error: bool = True   # ← 追加
+    ) -> T:
         final_prompt = PromptLoader.load_and_format(prompt_path, variables)
+
+        # print(f"[DEBUG] final_prompt length: {len(final_prompt)} chars")
+        # print("="*20 + " PROMPT START " + "="*20)
+        # print(final_prompt)
+        # print("="*20 + " PROMPT END " + "="*20)
+
+
+        last_error_message = None
 
         for attempt in range(max_retries):
             try:
                 messages = [{"role": "user", "content": final_prompt}]
                 raw_json = self.text_generator.generate(messages)
+
+                # print(f"[DEBUG] raw model response:\n{raw_json}")
+
                 sanitized_json = sanitize_json_string(json_str=raw_json)
 
-                return response_schema.model_validate_json(sanitized_json)
+                parsed = response_schema.model_validate_json(sanitized_json)
+
+                # JSONとしては正しいが、モデルが status:"error" を返してきた場合もリトライする
+                if retry_on_logical_error and parsed.status == "error":
+                    last_error_message = parsed.message
+                    print(f"[Attempt {attempt + 1}/{max_retries}] Model returned status=error: {parsed.message}")
+                    if attempt == max_retries - 1:
+                        return parsed  # 最終試行なら諦めてそのまま返す（呼び出し元でValueErrorになる）
+                    time.sleep(1)
+                    continue
+
+                return parsed
+
             except ValidationError as e:
                 print(f"[Attempt {attempt + 1}/{max_retries}] Validation Error: {e}")
                 if attempt == max_retries - 1:
                     raise 
                 time.sleep(1)  
+
         raise RuntimeError("Unexpected state in _execute")
 
 class SaveableModel(pydantic.BaseModel):

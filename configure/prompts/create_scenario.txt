@@ -30,6 +30,7 @@ Tasks
 # Input Data
 - **シーンタイトル（必須）：** {{title}}
 - **場所名（必須）：** {{location}}
+- **滞在時間（必須）：** {{duration}}
 - **シーン概要（必須）：** {{scene_summary}}
 - **プロタゴニスト（必須）：** {{protagonist_json}}
 - **デュオタゴニスト（必須）：** {{deuteragonist_json}}

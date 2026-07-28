@@ -28,8 +28,8 @@ class AnalysisAgent(BaseAgent):
 
         if not analysis_path.exists():
             # --- 生成モード ---
-            # report = self._create_report(current_issues)
-            report = self._thinking_about_report(current_issues)
+            report = self._create_report(current_issues)
+            # report = self._thinking_about_report(current_issues)
             print(f"Analysis result generated and saved to: {analysis_path}")
         else:
             # --- ロードモード ---
@@ -39,7 +39,7 @@ class AnalysisAgent(BaseAgent):
             print(f"Analysis result loaded from: {analysis_path}")
         
         self.report = report
-        return report
+        return self.report
 
     def analyze_region(self, spot_data: gpd.GeoDataFrame):
         analysis_path = self.project.results["geography"]
@@ -52,8 +52,8 @@ class AnalysisAgent(BaseAgent):
                 spot_list += f"name: {row['name']} / explanation: {row['explanation']}\n"
 
             # AIに分析を依頼
-            # region_summary = self._create_region_summary(spot_list)
-            region_summary = self._thinking_about_region(spot_list)
+            region_summary = self._create_region_summary(spot_list)
+            # region_summary = self._thinking_about_region(spot_list)
             print(f"Region analysis saved to: {analysis_path}")
         else:
             # ロードモード（既にある場合は再利用）
@@ -74,7 +74,7 @@ class AnalysisAgent(BaseAgent):
             "regional_summary": self.region_summary.summary,
             "regional_feature": self.region_summary.features,
             "known_issues": current_situation["known_issues"],
-            "problems": current_situation["problmes"],
+            "problems": current_situation["problems"],
             "future_plan": current_situation["future_plan"]
         }
     

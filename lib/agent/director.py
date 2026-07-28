@@ -70,6 +70,7 @@ class DirectorAgent(BaseAgent):
 
         variables = {
             "story_concept": self.agenda.concept,
+            "character_name": character.profile.name,
             "user_definition": user_definition,
             "age": character.profile.age,
             "gender": character.profile.gender,
@@ -105,6 +106,8 @@ class DirectorAgent(BaseAgent):
                 instruction=row["instruction"],
             )
             self.scenes.append(scene)
+
+        return self.scenes
 
     def create_scenes(self):
         # スポットごとに処理
