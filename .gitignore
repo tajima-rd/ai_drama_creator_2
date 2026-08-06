@@ -30,3 +30,6 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+# === External Dependencies ===
+/third_party/

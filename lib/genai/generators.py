@@ -2,8 +2,10 @@ import abc # 抽象基底クラスを定義するためにインポート
 import os
 import sys
 import json
+import time
 import requests
 import tempfile
+from urllib.parse import urlsplit, urlunsplit
 from google.genai import types # type: ignore
 from pathlib import Path
 from typing import (
@@ -205,6 +207,86 @@ class GeminiTextGenerator(TextGenerator):
             raise
 
 class LlamaCppTextGenerator(TextGenerator):
+    # SSH経由でリモートのllama-serverに即時再起動をリクエストする際の設定。
+    # 環境変数で上書き可能にしておく（マシン構成が変わっても.envだけで対応できるように）。
+    # restart_control_server.py（llama-serverと同じマシンで稼働する軽量HTTP
+    # 制御サーバー）に、即時再起動をリクエストする際の設定。
+    # ホスト名/ポート/トークンは環境変数で上書き可能にしておく。
+    RESTART_CONTROL_HOST = os.getenv("LLAMA_RESTART_CONTROL_HOST", "172.30.65.101")
+    RESTART_CONTROL_PORT = os.getenv("LLAMA_RESTART_CONTROL_PORT", "8090")
+    RESTART_TOKEN = os.getenv("LLAMA_RESTART_TOKEN", "")
+    RESTART_REQUEST_TIMEOUT_SEC = 10
+    HEALTH_CHECK_TIMEOUT_SEC = 180  # 再起動後、health応答を待つ最大時間
+
+    def request_server_restart(self) -> bool:
+        """
+        restart_control_server.py の /restart エンドポイントへPOSTし、
+        リモート側のllama-serverに即時再起動をリクエストする。
+        制御サーバーはリクエストファイルをtouchするだけで、実際の
+        プロセス管理（kill/起動）は watchdog_llm.sh 側が行う仕組み。
+
+        戻り値: リクエストの送信自体が成功したかどうか（サーバーの復帰確認は別途行う）
+        """
+        if not self.RESTART_TOKEN:
+            print(
+                "[WARN] LLAMA_RESTART_TOKEN が設定されていないため、"
+                "サーバーの再起動リクエストをスキップします。",
+                file=sys.stderr,
+            )
+            return False
+        try:
+            restart_url = f"http://{self.RESTART_CONTROL_HOST}:{self.RESTART_CONTROL_PORT}/restart"
+            resp = requests.post(
+                restart_url,
+                headers={"X-Restart-Token": self.RESTART_TOKEN},
+                timeout=self.RESTART_REQUEST_TIMEOUT_SEC,
+            )
+            if resp.status_code != 202:
+                print(f"[WARN] LLMサーバーの再起動リクエストに失敗しました（status={resp.status_code}）: {resp.text[:200]}", file=sys.stderr)
+                return False
+            print("[INFO] LLMサーバーへ即時再起動をリクエストしました。復帰を待機します...")
+            return True
+        except Exception as e:
+            print(f"[WARN] LLMサーバーの再起動リクエスト中に例外が発生しました: {e}", file=sys.stderr)
+            return False
+
+    def wait_for_server_ready(self, timeout: int = None) -> bool:
+        """
+        再起動後、サーバーが応答可能になるまでポーリングする。
+        /health エンドポイントを使い、成功したら True、タイムアウトしたら False を返す。
+        """
+        timeout = timeout or self.HEALTH_CHECK_TIMEOUT_SEC
+        parts = urlsplit(self.api_client.api_url)
+        health_url = urlunsplit((parts.scheme, parts.netloc, "/health", "", ""))
+
+        # 再起動処理（プロセスのkill〜起動）にはある程度時間がかかるため、
+        # ポーリングを始める前に少し待つ。
+        time.sleep(5)
+
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                resp = requests.get(health_url, timeout=5)
+                if resp.status_code == 200:
+                    print(f"[INFO] LLMサーバーが復帰しました（{time.time() - start:.0f}秒後）。")
+                    return True
+            except Exception:
+                pass
+            time.sleep(3)
+
+        print(f"[WARN] LLMサーバーの復帰確認がタイムアウトしました（{timeout}秒）。", file=sys.stderr)
+        return False
+
+    def reset_server(self) -> bool:
+        """
+        再起動をリクエストし、復帰を待つ、一連の処理をまとめたヘルパー。
+        呼び出し元（base_agent.py の _execute 等）から、失敗が続いた際に
+        まとめて呼び出せるようにする。
+        """
+        if not self.request_server_restart():
+            return False
+        return self.wait_for_server_ready()
+
     def _build_llama_payload(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         return {
             "model": self.api_client.model_name,
@@ -213,10 +295,54 @@ class LlamaCppTextGenerator(TextGenerator):
             "max_tokens": self.config.max_output_tokens,
             "stream": False,
             "cache_prompt": False,
+            # GGUF側のメタデータ不具合（</s> がEOGトークンとして認識されない
+            # 事例がある）により、モデルが本来終了したい箇所で終了できず、
+            # 上限トークン数まで生成を続けてしまい <unused..> のような
+            # 予約トークンの連打に陥ることがある。これを回避するため、
+            # テキストレベルでの停止条件を明示的に指定する。
+            "stop": ["<end_of_turn>", "</s>", "<eos>", "<|tool_response>"],
         }
+
+    def _erase_slot(self, slot_id: int = 0) -> None:
+        """
+        llama-server の KVキャッシュ/スロットを明示的に消去する。
+
+        cache_prompt: False を指定していても、直前の無関係なリクエストの
+        内容が新しいリクエストの生成結果に混入する（コンテキスト漏れ）
+        事例が観測されたため、各リクエストの前に念のためスロットを
+        強制的にリセットする。/slots エンドポイントが無効化されている
+        サーバー設定の場合は静かに無視する（本来の生成処理は継続する）。
+        """
+        try:
+            # api_url（例: http://172.30.65.101:8080/chat/completions）から
+            # スキーム＋ホスト＋ポートだけを正しく取り出す。
+            # 単純な rsplit("/", 1) ではパスの末尾セグメントを1つ削るだけに
+            # なってしまい（例: http://host:port/chat が残る）、誤った
+            # URLへ POST してしまうバグがあったため urlsplit を使う。
+            parts = urlsplit(self.api_client.api_url)
+            base_url = urlunsplit((parts.scheme, parts.netloc, "", "", ""))
+            erase_url = f"{base_url}/slots/{slot_id}?action=erase"
+            resp = requests.post(erase_url, headers=self.api_client.headers, timeout=10)
+            if resp.status_code >= 400:
+                # 501（--slot-save-path 未指定でサポート外）などの場合、
+                # 見た目上は例外にならないため、ここで明示的に警告を出す。
+                # 以前このチェックが無く、スロット消去が実質何もしていない
+                # ことに気づけなかった経緯があるため、必ず目立たせる。
+                print(
+                    f"[WARN] スロット消去に失敗しました（status={resp.status_code}）: "
+                    f"{resp.text[:300]} — KVキャッシュが前回リクエストの内容を"
+                    f"引きずっている可能性があります。サーバー起動時に "
+                    f"--slot-save-path を指定してください。",
+                    file=sys.stderr,
+                )
+        except Exception as erase_err:
+            # スロット消去は「念のため」の処理なので、失敗しても本処理は続行する
+            print(f"[WARN] スロットの消去に失敗しました（無視して続行）: {erase_err}", file=sys.stderr)
 
     def generate(self, messages: List[Dict[str, str]]) -> Optional[str]:
         try:
+            self._erase_slot()
+
             # ヘルパーメソッドを呼び出してペイロードを構築
             payload = self._build_llama_payload(messages)
             

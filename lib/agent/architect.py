@@ -1,21 +1,24 @@
 # lib/agent/architect.py
-from pathlib import Path
-
-from lib.schema.review import Review
-
 from .base_agent import BaseAgent
-from ..schema.agenda import Agenda
-from ..schema.character import CharacterResponse, Character, Profile
-from ..utils.propmpt_utils import PromptType, PromptLoader
 from ..core.project import Project
+from ..schema import (
+    Agenda,
+    Character,
+    Profile,
+)
 
 class ArchitectAgent(BaseAgent):
     def __init__(self, text_generator, project: Project, agenda: Agenda=None):
         super().__init__(text_generator)
         self.project = project
         self.agenda = agenda
-        self.protagonist = Character(role_type="protagonist", profile=Profile())
-        self.deuteragonist = Character(role_type="deuteragonist", profile=Profile())
+        empty_profile_kwargs = dict(
+            name="", bond="", age="", gender="", personality="",
+            speaking_style="", background="", knowledge="", experience="",
+            cognitive_bias="", value_system="", action="",
+        )
+        self.protagonist = Character(role_type="protagonist", profile=Profile(**empty_profile_kwargs))
+        self.deuteragonist = Character(role_type="deuteragonist", profile=Profile(**empty_profile_kwargs))
 
     def define_characters(
             self, 
@@ -24,7 +27,6 @@ class ArchitectAgent(BaseAgent):
             bond: str,
             user_definition: str
         ) -> Character:
-        # project.results から該当するパスを取得 ("protagonist" または "deuteragonist")
         char_path = self.project.results[role_type]
 
         if not char_path.exists():
@@ -33,13 +35,13 @@ class ArchitectAgent(BaseAgent):
                 self.protagonist.role_type = "protagonist"
                 self.protagonist.profile.bond = bond
                 self.protagonist.profile.name = character_name
-                self._create_profile(self.protagonist, bond, user_definition)
+                self._create_profile_sequential(self.protagonist, bond, user_definition)
                 return self.protagonist
             elif role_type == "deuteragonist":
                 self.deuteragonist.role_type = "deuteragonist"
                 self.deuteragonist.profile.bond = bond
                 self.deuteragonist.profile.name = character_name
-                self._create_profile(self.deuteragonist, bond, user_definition)
+                self._create_profile_sequential(self.deuteragonist, bond, user_definition)
                 return self.deuteragonist
             else:
                 raise ValueError(f"Invalid role_type: {role_type}. Must be 'protagonist' or 'deuteragonist'.")
@@ -56,98 +58,83 @@ class ArchitectAgent(BaseAgent):
             print(f"{role_type.capitalize()} loaded from file.")
             return character
         
-    def modify_character(self, role_type:str, review:Review):
-        if role_type == "protagonist":
-            character = self.protagonist
-        elif role_type == "deuteragonist":
-            character = self.deuteragonist
-        else:
-            raise ValueError(f"Invalid role_type: {role_type}. Must be 'protagonist' or 'deuteragonist'.")
+    def _create_profile_sequential(self, character, bond, user_definition) -> Character:
+        context = (
+            "あなたは物語キャラクター設計に特化したキャラクターアーキテクトです。\n"
+            "生成AIによる自動物語生成のための登場人物を作成します。平易で解りやすい言葉を使用し、"
+            "中学生でも理解できるような語彙の範囲で記述してください。\n\n"
+            f"【ストーリー概念】\n{self.agenda.concept}\n\n"
+            f"【キャラクターの役割】{character.role_type}\n"
+            f"【キャラクターの名前】{character.profile.name}\n"
+            f"【相方との関係性】{bond}\n"
+            f"【キャラクターの基礎設定】\n{user_definition}\n"
+        )
+        conversation_history = [{"role": "system", "content": context}]
 
-        if review.Judgement[0] == "合格":
-            print(f"{role_type.capitalize()} is approved. No modification needed.")
-            return character
-        else:
-            self._modify_profile(character, review)
+        common_constraints = (
+            "\n\n【制約条件】\n"
+            "- 挨拶や前置きは不要。本文のみを出力してください。\n"
+            "- 与えられた基礎設定を逸脱したり、矛盾した設定を追加しないでください。\n"
+            "- 「友達が多い」といった抽象的な表現を避け、具体的なエピソードを想起させる記述をしてください。\n"
+            "- 擬音語など、音声合成の障害となる要素は含めないでください。\n"
+            "- 具体的な場所については含めないでください。\n"
+        )
 
-    def _create_profile(self, character, bond, user_definition) -> Character:
-        # パスの解決
-        prompt_path = PromptLoader.get_path(self.project.prompt_dir, PromptType.CREATE_CHARACTER)
+        character.profile.age = self._ask_sequential(
+            conversation_history,
+            "このキャラクターの『年齢』を設定してください。不詳でも構いません。",
+            "（一言で）", common_constraints, min_length=1,
+        )
+        character.profile.gender = self._ask_sequential(
+            conversation_history,
+            "このキャラクターの『性別』を設定してください。不詳や架空の性別でも構いません。",
+            "（一言で）", common_constraints, min_length=1,
+        )
+        character.profile.personality = self._ask_sequential(
+            conversation_history,
+            "このキャラクターの『性格』を、具体的なエピソードが想起できるように記述してください。",
+            "（100字程度）", common_constraints,
+        )
+        character.profile.background = self._ask_sequential(
+            conversation_history,
+            "このキャラクターの『経歴』を記述してください。",
+            "（150字程度）", common_constraints,
+        )
+        character.profile.knowledge = self._ask_sequential(
+            conversation_history,
+            "このキャラクターが持つ『知識』（何を知っていて、何を知らないか）を記述してください。",
+            "（100字程度）", common_constraints,
+        )
+        character.profile.experience = self._ask_sequential(
+            conversation_history,
+            "このキャラクターの『経験』（誕生から現在までの経験）を記述してください。",
+            "（100字程度）", common_constraints,
+        )
+        character.profile.cognitive_bias = self._ask_sequential(
+            conversation_history,
+            "このキャラクターが『事実をどう歪めて捉えるか』という認知の歪みのルールを記述してください。"
+            "生成AIがこのキャラクターを演じる際の指針となるように、具体的に記述してください。",
+            "（150字程度）", common_constraints,
+        )
+        character.profile.value_system = self._ask_sequential(
+            conversation_history,
+            "このキャラクターが『何を良しとし、何を嫌うか』という価値観を記述してください。",
+            "（100字程度）", common_constraints,
+        )
+        character.profile.speaking_style = self._ask_sequential(
+            conversation_history,
+            "このキャラクターの『話し方』の特徴を記述してください。",
+            "（100字程度）", common_constraints,
+        )
+        character.profile.action = self._ask_sequential(
+            conversation_history,
+            "このキャラクターの『行動様式』（舞台の中での具体的な行動パターン）を記述してください。",
+            "（150字程度）", common_constraints,
+        )
 
-        variables = {
-            "story_concept": self.agenda.concept,
-            "character_name": character.profile.name,
-            "character_role": character.role_type,
-            "bond_with_another_character": character.profile.bond,
-            "user_definition": user_definition
-        }
-        
-        response = self._execute(prompt_path, variables, CharacterResponse)
-        
-        if response.status == "ready" and response.result:
-            genarated_character = response.result
-            
-            character.profile.age = genarated_character.profile.age
-            character.profile.gender = genarated_character.profile.gender
-            character.profile.personality = genarated_character.profile.personality
-            character.profile.cognitive_bias = genarated_character.profile.cognitive_bias
-            character.profile.value_system = genarated_character.profile.value_system
-            character.profile.speaking_style = genarated_character.profile.speaking_style
-            character.profile.background = genarated_character.profile.background
-            character.profile.knowledge = genarated_character.profile.knowledge
-            character.profile.experience = genarated_character.profile.experience
-            character.profile.action = genarated_character.profile.action
+        if character.role_type == "protagonist":
+            character.save_json(self.project.results["protagonist"])
+        elif character.role_type == "deuteragonist":
+            character.save_json(self.project.results["deuteragonist"])
 
-            if character.role_type == "protagonist":
-                character.save_json(self.project.results["protagonist"])
-            elif character.role_type == "deuteragonist":
-                character.save_json(self.project.results["deuteragonist"])
-        else:
-            raise ValueError(f"AIからのプロフィール生成に失敗しました: {response.message}")
-
-    def _modify_profile(self, character, review: Review) -> Character:
-        # パスの解決
-        prompt_path = PromptLoader.get_path(self.project.prompt_dir, PromptType.MODIFY_CHARACTER)
-
-        variables = {
-            "review_comments": review.comments,
-            "review_requirements": review.requirements,
-            "story_concept": self.agenda.concept,
-            "character_name": character.profile.name,
-            "bond": character.profile.bond,
-            "age": character.profile.age,
-            "gender": character.profile.gender,
-            "personality": character.profile.personality,
-            "cognitive_bias": character.profile.cognitive_bias,
-            "value_system": character.profile.value_system,
-            "speaking_style": character.profile.speaking_style,
-            "background": character.profile.background,
-            "knowledge": character.profile.knowledge,
-            "experience": character.profile.experience,
-            "action": character.profile.action
-        }
-        
-        response = self._execute(prompt_path, variables, CharacterResponse)
-        
-        if response.status == "ready" and response.result:
-            modified_character = response.result
-            
-            character.profile.age = modified_character.profile.age
-            character.profile.gender = modified_character.profile.gender
-            character.profile.personality = modified_character.profile.personality
-            character.profile.cognitive_bias = modified_character.profile.cognitive_bias
-            character.profile.value_system = modified_character.profile.value_system
-            character.profile.speaking_style = modified_character.profile.speaking_style
-            character.profile.background = modified_character.profile.background
-            character.profile.knowledge = modified_character.profile.knowledge
-            character.profile.experience = modified_character.profile.experience
-            character.profile.action = modified_character.profile.action
-
-            if character.role_type == "protagonist":
-                character.save_json(self.project.results["protagonist"])
-            elif character.role_type == "deuteragonist":
-                character.save_json(self.project.results["deuteragonist"])
-        else:
-            raise ValueError(f"AIからのプロフィール修正に失敗しました: {response.message}")
-        
         return character

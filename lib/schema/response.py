@@ -24,7 +24,12 @@ class BaseResponse(BaseModel, Generic[T]):
 
 class SimpleReturnValue(BaseModel):
     key: Optional[str] = Field(None, description="返却されるキー名")
-    value: Optional[str] = Field(None, description="返却される値")
+    # director.py の _create_scene_plot が response.result.value を
+    # 直接参照しているため、これだけは必須化する。以前は Optional の
+    # ままだったため、モデルが "value" 以外のキー名で応答した場合に
+    # None のまま静かに通過し、後続のプロンプトに "None" という
+    # 文字列がそのまま埋め込まれてしまう危険があった。
+    value: str = Field(..., description="返却される値")
     description: Optional[str] = Field(None, description="データの説明")
 
 SimpleResponse = BaseResponse[SimpleReturnValue]

@@ -1,24 +1,13 @@
 import geopandas as gpd
 
-from pathlib import Path
-
-from lib.schema.agenda import Agenda
-from lib.schema.review import ReviewResponse
-
 from .base_agent import BaseAgent
-from .analyst import AnalysisAgent
-from .architect import ArchitectAgent
-from .designer import DesignerAgent
-from .writer import WriterAgent
-
-from ..schema.response import SimpleResponse
-from ..schema.plot import PlotDesign
-from ..schema.character import Character
-from ..schema.scene import SceneDesignResponse, SceneDesign
-
-from ..utils.propmpt_utils import PromptType, PromptLoader
 from ..core.project import Project
-
+from ..schema import (
+    Agenda,
+    PlotDesign,
+    Character,
+    SceneDesign
+)
 
 class DirectorAgent(BaseAgent):
     def __init__(
@@ -38,59 +27,6 @@ class DirectorAgent(BaseAgent):
         self.protagonist = protagonist
         self.deuteragonist = deuteragonist
         self.scenes = scenes
-    
-    def show_review_result(self, review_result):
-        print(f"Judgement: {review_result.key}")
-        print(f"Comments: {review_result.description}")
-
-        if review_result.key != "合格":
-            print(f"Modification Requirement: {review_result.value}")
-            return
-    
-    def review_region_summary(self, analyst: AnalysisAgent) -> str:
-        prompt_type = PromptType.REVIEW_REGION_SUMMARY
-        prompt_path = PromptLoader.get_path(self.project.prompt_dir, prompt_type)
-
-        variables = {
-            "title": analyst.region_summary.title,
-            "summary": analyst.region_summary.summary,
-            "features": analyst.region_summary.features
-        }
-
-        response = self._execute(prompt_path, variables, SimpleResponse)
-        if response.status == "ready" and response.result:
-            self.show_review_result(response.result)
-            return response.result
-        else:
-            raise ValueError(f"AIからの地域概要レビューに失敗しました: {response.message}") 
-    
-    def review_character(self, character: Character, user_definition: str) -> ReviewResponse:
-        prompt_type = PromptType.REVIEW_CHARACTER
-        prompt_path = PromptLoader.get_path(self.project.prompt_dir, prompt_type)
-
-        variables = {
-            "story_concept": self.agenda.concept,
-            "character_name": character.profile.name,
-            "user_definition": user_definition,
-            "age": character.profile.age,
-            "gender": character.profile.gender,
-            "bond": character.profile.bond,
-            "personality": character.profile.personality,
-            "cognitive_bias": character.profile.cognitive_bias,
-            "value_system": character.profile.value_system,
-            "speaking_style": character.profile.speaking_style,
-            "background": character.profile.background,
-            "knowledge": character.profile.knowledge,
-            "experience": character.profile.experience,
-            "action": character.profile.action
-        }
-        
-        response = self._execute(prompt_path, variables, ReviewResponse)
-        if response.status == "ready" and response.result:
-            review_result = response.result
-            return review_result
-        else:
-            raise ValueError(f"AIからのキャラクターレビューに失敗しました: {response.message}")
 
     def setup_scenes(self, spot_data: gpd.GeoDataFrame):
         self.scenes = []
@@ -104,6 +40,12 @@ class DirectorAgent(BaseAgent):
                 duration=row["duration"],
                 facts=row["explanation"],
                 instruction=row["instruction"],
+                # scene.py 側で必須化したフィールド。この時点ではまだAIの
+                # 応答を受け取っていないため、空文字を明示的に渡しておき、
+                # _create_scene_setting() の応答を受けて後から上書きされる。
+                atmosphere="",
+                narrative_tone="",
+                spatial_direction="",
             )
             self.scenes.append(scene)
 
@@ -119,11 +61,11 @@ class DirectorAgent(BaseAgent):
                 print(f"Generating Scene {scene_id}: {spot.location}...")
                 try:
                     print(f"  -> Creating scene plot...")
-                    scene_plot = self._create_scene_plot(spot)
+                    scene_plot = self._create_scene_plot_sequential(spot)
                     self.scenes[i].scene_plot = scene_plot
 
                     print(f"  -> Creating full scene details...")
-                    self.scenes[i] = self._create_scene_setting(spot)
+                    self.scenes[i] = self._create_scene_setting_sequential(spot)
 
                     print(f"  -> Scene {scene_id} saved.")
                 except Exception as e:
@@ -136,54 +78,140 @@ class DirectorAgent(BaseAgent):
 
         return self.scenes
 
-    def _create_scene_plot(self, spot) -> str:
-        prompt_path = PromptLoader.get_path(self.project.prompt_dir, PromptType.CREATE_SCENE_PLOT)
+    def _create_scene_plot_sequential(self, spot) -> str:
+        """
+        create_scene_plot.txt（JSON一括生成）の代わりに、対話形式で
+        このシーンに該当する部分あらすじ（scene_plot）を生成する。
+        """
+        protagonist_name = self.protagonist.profile.name
+        deuteragonist_name = self.deuteragonist.profile.name
 
-        variables = {
-            "num_scenes": len(self.scenes),
-            "scene_number": spot.scene_id,
-            "entire_synopsis": self.plotDesign.synopsis,
-            "location": spot.location,
-            "facts": spot.facts,
-            "instruction": spot.instruction,
-            "protagonist_json": self.protagonist.model_dump_json(),
-            "deuteragonist_json": self.deuteragonist.model_dump_json()
-        }
+        context = (
+            "あなたはストーリー構成と観光体験設計に精通したストーリーデザイナーです。\n"
+            "以下の情報のみを根拠として、物語全体のあらすじのうち、このシーンに該当する"
+            "部分あらすじだけを作成します。\n\n"
+            f"【物語全体のあらすじ】\n{self.plotDesign.synopsis}\n\n"
+            f"【このシーンの番号】{spot.scene_id} / 全{len(self.scenes)}シーン中\n"
+            f"【舞台となるスポット】{spot.location}\n"
+            f"【スポット情報（このシーンの事実の唯一の根拠）】\n{spot.facts}\n\n"
+            f"【シーン指示】\n{spot.instruction}\n\n"
+            f"【登場人物1：{protagonist_name}】\n{self._describe_character(self.protagonist)}\n\n"
+            f"【登場人物2：{deuteragonist_name}】\n{self._describe_character(self.deuteragonist)}\n\n"
+        )
+        conversation_history = [{"role": "system", "content": context}]
 
-        response = self._execute(prompt_path, variables, SimpleResponse)
-        
-        if response.status == "ready" and response.result:
-            return response.result.value
-        else:
-            raise ValueError(f"Failed to create scene plot. Response message: {response.message}")
+        common_constraints = (
+            "\n\n【制約条件】\n"
+            "- 挨拶や前置きは不要。本文のみを出力してください。\n"
+            f"- 登場人物は必ず実名（{protagonist_name} / {deuteragonist_name}）で呼んでください。\n"
+            f"- 舞台は『{spot.location}』のみです。他の場所や建物の名称を登場させないで"
+            "ください。\n"
+            "- 事実に基づくことを原則とし、上記のスポット情報に書かれていない年号・時代区分・"
+            "国名・人物・出来事を創作しないでください。\n"
+            "- 物語全体のあらすじと矛盾してはいけません。今回のシーン番号以外のシーンの内容を"
+            "書いてはいけません。\n"
+        )
 
-    def _create_scene_setting(self, spot) -> SceneDesign:
-        # パスの解決
-        prompt_path = PromptLoader.get_path(self.project.prompt_dir,  PromptType.CREATE_SCENE)
+        return self._ask_sequential(
+            conversation_history,
+            f"以下は、このシーンの舞台『{spot.location}』に関するスポット情報です。この内容を"
+            f"根拠として、物語全体のあらすじのうち、このシーン（{spot.scene_id}番目）に該当"
+            f"する部分だけの『部分あらすじ』を作成してください。\n\n"
+            f"--- スポット情報 ---\n{spot.facts}\n--- ここまで ---\n\n",
+            common_constraints=common_constraints,
+        )
 
-        variables = {
-            "facts": spot.facts,
-            "synopsis": spot.scene_plot,
-            "instruction": spot.instruction,
-            "emotional_arc": self.plotDesign.emotional_arc,
-            "protagonist_json": self.protagonist.model_dump_json(),
-            "deuteragonist_json": self.deuteragonist.model_dump_json(),
-            "duration": spot.duration
-        }
+    def _create_scene_setting_sequential(self, spot) -> SceneDesign:
+        """
+        create_scene.txt（JSON一括生成）の代わりに、SceneDesignの
+        title/scene_summary/atmosphere/narrative_tone/spatial_direction
+        を1問1答形式で順番に生成する。
 
-        response = self._execute(prompt_path, variables, SceneDesignResponse)
-        
-        if response.status == "ready" and response.result:
-            this_scene = response.result
+        設計方針（個別のエラー事例に対する場当たり的なパッチを避けるため、
+        明文化しておく）：
+        - 「事実に基づくこと」「実名を使うこと」「この場所以外を登場させ
+          ないこと」は、特定の質問（例：scene_summaryだけ）に個別に
+          埋め込むのではなく、全ての質問に共通する制約（common_constraints）
+          として一律に課す。個別対応は質問ごとに矛盾したルールを生み、
+          汎用性を欠く。
+        - 前段の回答の形式（番号付きリストの有無など）に依存する参照
+          （「直前の(1)〜(4)を踏まえて」等）は行わない。モデルの出力形式は
+          安定しないため、そのような参照は容易に壊れる。
+        - 独自ロジックによる「原文一致検証」のような、内容を機械的に
+          断定する仕組みは設けない。facts の内容は多様であり、汎用的な
+          正誤判定は困難で、かえって誤った足切りをしかねない。
+        """
+        duration_seconds = spot.duration or 0
+        duration_minutes = max(1, round(duration_seconds / 60))
+        MAX_SUMMARY_LENGTH = 1500
+        target_summary_length = min(duration_minutes * 350, MAX_SUMMARY_LENGTH)
 
-            scene_file = self.project.scene_dir / f"{spot.scene_id}_scene.json"
-            spot.title = this_scene.title
-            spot.scene_summary = this_scene.scene_summary
-            spot.atmosphere = this_scene.atmosphere
-            spot.narrative_tone = this_scene.narrative_tone
-            spot.spatial_direction = this_scene.spatial_direction
+        protagonist_name = self.protagonist.profile.name
+        deuteragonist_name = self.deuteragonist.profile.name
 
-            spot.save_json(scene_file)
-            return spot
-        else:
-            raise ValueError(f"Failed to create scene details. Response message: {response.message}")
+        context = (
+            "あなたは、没入型観光音声ドラマのシーン設計専門ディレクターです。\n"
+            "以下の情報のみを根拠として、このシーンの詳細な設計を行います。\n\n"
+            f"【舞台となるスポット】{spot.location}\n"
+            f"【スポット情報（このシーンの事実の唯一の根拠）】\n{spot.facts}\n\n"
+            f"【シーン指示】\n{spot.instruction}\n\n"
+            f"【このシーンのあらすじ（部分プロット）】\n{spot.scene_plot}\n\n"
+            f"【登場人物1：{protagonist_name}】\n{self._describe_character(self.protagonist)}\n\n"
+            f"【登場人物2：{deuteragonist_name}】\n{self._describe_character(self.deuteragonist)}\n\n"
+            f"【想定滞在時間】{duration_minutes}分間\n"
+        )
+        conversation_history = [{"role": "system", "content": context}]
+
+        # 以下の制約は、特定の質問に個別対応するのではなく、
+        # この後の全ての質問（scene_summary/atmosphere/narrative_tone/
+        # spatial_direction/title）に一律で付与する。
+        common_constraints = (
+            "\n\n【制約条件】\n"
+            "- 挨拶や前置きは不要。本文のみを出力してください。\n"
+            "- 文章は「である調」で書いてください。\n"
+            f"- 登場人物は必ず実名（{protagonist_name} / {deuteragonist_name}）で"
+            "呼んでください。「論理的な人物」のような抽象的な呼び方はしないでください。\n"
+            f"- 舞台は『{spot.location}』のみです。他の場所や建物の名称を登場させないで"
+            "ください。\n"
+            "- 事実に基づくことを原則とし、上記のスポット情報に書かれていない年号・"
+            "時代区分・国名・人物・出来事を創作しないでください。スポット情報に無い"
+            "ことは、無理に具体的にせず、雰囲気や情緒の描写で補ってください。\n"
+        )
+
+        spot.scene_summary = self._ask_sequential(
+            conversation_history,
+            f"以下は、このシーンの舞台『{spot.location}』に関するスポット情報（史実・具体情報）"
+            f"です。この内容を根拠として、このシーンの『概要』を作成してください。\n\n"
+            f"--- スポット情報 ---\n{spot.facts}\n--- ここまで ---\n\n"
+            f"上記のスポット情報に書かれている具体的な内容（年号・人物名・経緯など）を、"
+            f"本文の中で実際に触れてください。二人の登場人物が会話する場面として書いてください。",
+            f"（{target_summary_length}文字程度）",
+            common_constraints,
+        )
+        spot.atmosphere = self._ask_sequential(
+            conversation_history,
+            "このシーンの『現場の雰囲気・空気感』を記述してください。",
+            "（100字程度）",
+            common_constraints,
+        )
+        spot.narrative_tone = self._ask_sequential(
+            conversation_history,
+            "このシーンにおける『登場人物たちの声のトーン』を記述してください。",
+            "（100字程度）",
+            common_constraints,
+        )
+        spot.spatial_direction = self._ask_sequential(
+            conversation_history,
+            "このシーンの『空間演出上の留意点』（歩く速度や視線の誘導など）を記述してください。",
+            "（100字程度）",
+            common_constraints,
+        )
+        spot.title = self._ask_title(
+            conversation_history,
+            "ここまでの内容に合致する、このシーンの『仮タイトル』を1つだけ提案してください。",
+            common_constraints,
+        )
+
+        scene_file = self.project.scene_dir / f"{spot.scene_id}_scene.json"
+        spot.save_json(scene_file)
+        return spot

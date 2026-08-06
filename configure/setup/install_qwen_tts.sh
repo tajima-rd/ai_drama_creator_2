@@ -3,9 +3,27 @@ set -e
 
 # --- 設定 ---
 REPO_URL="https://github.com/QwenLM/Qwen3-TTS.git"
-TEMP_DIR="qwen3-tts"
+
+# スクリプト自身の場所を基準に、常にプロジェクトルート直下の
+# third_party/ 配下に展開されるようにする。
+# third_party/ に置く理由:
+#   - 自前のコードと、外部からクローンしてくる依存を、ディレクトリの
+#     時点で明確に区別するため。
+#   - このプロジェクト自体がgit管理されているため、qwen3-tts が持つ
+#     独自の .git（git clone してくると付いてくる）が、プロジェクト
+#     本体のgit管理と衝突（いわゆる "nested repo" 問題）しないよう、
+#     third_party/ ごと .gitignore で除外する運用にするため
+#     （このスクリプトはクリーンインストールのたびに再クローンする
+#     設計なので、コミット対象として管理する必要はない）。
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+THIRD_PARTY_DIR="${PROJECT_ROOT}/third_party"
+TEMP_DIR="${THIRD_PARTY_DIR}/qwen3-tts"
+
+mkdir -p "$THIRD_PARTY_DIR"
 
 echo "🚀 Qwen3-TTS のインストールを開始します..."
+echo "   展開先: ${TEMP_DIR}"
 
 # 1. システム依存関係の確認 (Ubuntu/Debian想定)
 # 音声処理に必須のライブラリを確認

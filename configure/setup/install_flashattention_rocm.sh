@@ -5,9 +5,18 @@ set -e
 # /opt/rocm がシンボリックリンクでない場合は rocm-6.2 等の実体を指定してください
 ROCM_PATH="/opt/rocm"
 GPU_TARGET="gfx1100" # gfx1151
-TEMP_DIR="flash-attention-build"
+
+# ここでの TEMP_DIR は、`pip install .`（editable ではない）でビルド・
+# インストールするためだけの使い捨てディレクトリであり、インストール完了後は
+# 一切参照されない（qwen3-tts のような editable install とは異なり、
+# プロジェクトルート等に恒久的に置いておく理由が無い）。
+# そのため OS標準の一時ディレクトリに作成し、スクリプト終了時
+# （成功・失敗を問わず）に自動的に削除する。
+TEMP_DIR="$(mktemp -d -t flash-attention-build-XXXXXX)"
+trap 'echo "🧹 一時ビルドディレクトリを削除します: ${TEMP_DIR}"; rm -rf "$TEMP_DIR"' EXIT
 
 echo "🚀 ROCm 用 Flash Attention のビルドを開始します（Torch 保護モード）"
+echo "   ビルド用ディレクトリ（一時・終了時に自動削除）: ${TEMP_DIR}"
 
 # 1. 現状の Torch 確認 (ROCm版でないなら中止)
 echo "🔍 Torch のバージョンを確認中..."
@@ -25,7 +34,10 @@ export GPU_ARCHS="${GPU_TARGET}"
 export PYTORCH_ROCM_ARCH="${GPU_TARGET}"
 
 # 3. ソース取得
-if [ -d "$TEMP_DIR" ]; then rm -rf "$TEMP_DIR"; fi
+# mktemp -d で作られた直後のディレクトリは空だが、git clone は展開先
+# ディレクトリが「存在しない」ことを期待するため、いったん削除してから
+# クローンする。
+rmdir "$TEMP_DIR"
 echo "📥 ROCm 公式ソースコードをクローン中..."
 git clone --recursive https://github.com/ROCm/flash-attention.git "$TEMP_DIR"
 cd "$TEMP_DIR"

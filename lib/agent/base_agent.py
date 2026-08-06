@@ -1,18 +1,22 @@
 # lib/agent/base_agent.py
 
-from dataclasses import Field
 import time
 import re
 import json
-
 import pydantic
-from pydantic_core import ValidationError
 
 from pathlib import Path
-from typing import List, Type, TypeVar, Dict, Any, Optional
-
-from ..genai.generators import SoundGenerator, TextGenerator
-from ..utils.propmpt_utils import PromptLoader
+from typing import (
+    List, 
+    TypeVar, 
+    Dict, 
+    Any, 
+    Optional
+)
+from ..genai import (
+    SoundGenerator, 
+    TextGenerator
+)
 
 T = TypeVar("T", bound=pydantic.BaseModel)
 
@@ -22,29 +26,6 @@ def clean_speech(text: str) -> str:
     # 典型的な前置きを削除（正規表現等で）
     text = re.sub(r'^.*?は「?|」?です。?$', '', text)
     return text.strip(' 「」"\'')
-
-def sanitize_json_string(json_str: str) -> str:
-    # Remove leading/trailing whitespace.
-    json_str = json_str.strip()
-
-    # Convert markdown code blocks to plain JSON if they exist
-    start_idx = -1
-    for i, char in enumerate(json_str):
-        if char in '{[':
-            start_idx = i
-            break            
-    end_idx = -1
-
-    for i, char in enumerate(reversed(json_str)):
-        if char in '}]':
-            end_idx = len(json_str) - i
-            break
-    if start_idx != -1 and end_idx != -1:
-        json_str = json_str[start_idx:end_idx]
-
-    # Remove any remaining non-printable characters
-    sanitized = re.sub(r'[\x00-\x1f]', '', json_str)
-    return sanitized
 
 class BaseAgent:
     def __init__(
@@ -73,56 +54,89 @@ class BaseAgent:
         # response_schemaを使わず、単なる文字列として生成
         raw_text = self.text_generator.generate(conversation_history)
         
-        # 最低限のクリーニング（前後の空白除去など）
         return raw_text.strip()
 
-    def _execute(
-        self, 
-        prompt_path: Path, 
-        variables: Dict[str, Any], 
-        response_schema: Type[T], 
-        max_retries: int = 10,
-        retry_on_logical_error: bool = True   # ← 追加
-    ) -> T:
-        final_prompt = PromptLoader.load_and_format(prompt_path, variables)
+    @staticmethod
+    def _describe_character(character) -> str:
+        p = character.profile
+        return (
+            f"名前: {p.name}\n"
+            f"年齢: {p.age} / 性別: {p.gender}\n"
+            f"性格: {p.personality}\n"
+            f"話し方: {p.speaking_style}\n"
+            f"経歴: {p.background}\n"
+            f"認知の歪み（物事をどう誤解するか）: {p.cognitive_bias}\n"
+            f"価値観: {p.value_system}\n"
+            f"行動様式: {p.action}"
+        )
 
-        # print(f"[DEBUG] final_prompt length: {len(final_prompt)} chars")
-        # print("="*20 + " PROMPT START " + "="*20)
-        # print(final_prompt)
-        # print("="*20 + " PROMPT END " + "="*20)
-
-
-        last_error_message = None
+    def _chat_step_with_retry(
+        self,
+        conversation_history: List[Dict[str, str]],
+        max_retries: int = 5,
+        min_length: int = 2,
+    ) -> str:
+        RESTART_AFTER_N_FAILURES = 2
+        last_exception: Optional[Exception] = None
 
         for attempt in range(max_retries):
             try:
-                messages = [{"role": "user", "content": final_prompt}]
-                raw_json = self.text_generator.generate(messages)
+                text = self._chat_step(conversation_history)
 
-                # print(f"[DEBUG] raw model response:\n{raw_json}")
+                if not text or len(text.strip()) < min_length:
+                    raise ValueError(f"応答が空、または短すぎます（{len(text)}文字）")
 
-                sanitized_json = sanitize_json_string(json_str=raw_json)
+                # <unused49> のような予約トークンや、明らかな崩壊パターンの検知
+                head = text[:80]
+                if "<unused" in head or "<|" in head or "<end_of_turn>" in head:
+                    raise ValueError(f"崩壊したトークン列が検出されました: {head!r}")
 
-                parsed = response_schema.model_validate_json(sanitized_json)
+                return text
 
-                # JSONとしては正しいが、モデルが status:"error" を返してきた場合もリトライする
-                if retry_on_logical_error and parsed.status == "error":
-                    last_error_message = parsed.message
-                    print(f"[Attempt {attempt + 1}/{max_retries}] Model returned status=error: {parsed.message}")
-                    if attempt == max_retries - 1:
-                        return parsed  # 最終試行なら諦めてそのまま返す（呼び出し元でValueErrorになる）
-                    time.sleep(1)
-                    continue
-
-                return parsed
-
-            except ValidationError as e:
-                print(f"[Attempt {attempt + 1}/{max_retries}] Validation Error: {e}")
+            except Exception as e:
+                last_exception = e
+                print(f"[chat_step Attempt {attempt + 1}/{max_retries}] 失敗: {e}")
                 if attempt == max_retries - 1:
-                    raise 
-                time.sleep(1)  
+                    raise RuntimeError(f"chat_stepが{max_retries}回失敗しました: {last_exception}") from last_exception
 
-        raise RuntimeError("Unexpected state in _execute")
+                if (attempt + 1) % RESTART_AFTER_N_FAILURES == 0 and hasattr(self.text_generator, "reset_server"):
+                    print(f"[chat_step Attempt {attempt + 1}/{max_retries}] 連続失敗のため、LLMサーバーのリセットを試みます...")
+                    self.text_generator.reset_server()
+
+                time.sleep(1)
+
+        raise RuntimeError("Unexpected state in _chat_step_with_retry")
+
+    def _ask_sequential(
+        self,
+        conversation_history: List[Dict[str, str]],
+        question: str,
+        length_hint: str = "",
+        common_constraints: str = "",
+        min_length: int = 2,
+    ) -> str:
+        conversation_history.append({
+            "role": "user",
+            "content": f"{question}{length_hint}{common_constraints}"
+        })
+        answer = self._chat_step_with_retry(conversation_history, min_length=min_length)
+        conversation_history.append({"role": "assistant", "content": answer})
+        print(f"[DEBUG] ask() answer: {answer[:200]!r}")
+        return answer
+
+    def _ask_title(
+        self,
+        conversation_history: List[Dict[str, str]],
+        question: str,
+        common_constraints: str = "",
+    ) -> str:
+        title = self._ask_sequential(
+            conversation_history,
+            question,
+            "（タイトルのみを1行で。説明や記号は不要）",
+            common_constraints,
+        )
+        return title.strip().split("\n")[0].strip(' 「」"\'')
 
 class SaveableModel(pydantic.BaseModel):
     def save_json(self, file_path: Path):

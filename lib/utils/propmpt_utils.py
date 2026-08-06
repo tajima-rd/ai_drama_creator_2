@@ -3,6 +3,29 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 from enum import Enum
 
+def sanitize_json_string(json_str: str) -> str:
+    # Remove leading/trailing whitespace.
+    json_str = json_str.strip()
+
+    # Convert markdown code blocks to plain JSON if they exist
+    start_idx = -1
+    for i, char in enumerate(json_str):
+        if char in '{[':
+            start_idx = i
+            break            
+    end_idx = -1
+
+    for i, char in enumerate(reversed(json_str)):
+        if char in '}]':
+            end_idx = len(json_str) - i
+            break
+    if start_idx != -1 and end_idx != -1:
+        json_str = json_str[start_idx:end_idx]
+
+    # Remove any remaining non-printable characters
+    sanitized = re.sub(r'[\x00-\x1f]', '', json_str)
+    return sanitized
+
 class PromptType(Enum):
     CREATE_AGENDA = "create_agenda.txt"
     CREATE_CHARACTER = "create_character.txt"
